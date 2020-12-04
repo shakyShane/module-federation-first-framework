@@ -1,29 +1,23 @@
 import * as React from "react"
-import {BaseRouter, Resolver, RouterProvider} from "../src/router";
-import {loadFromRemote} from "../src/loader/load-from-remote";
+import { BaseRouter, RouterProvider } from "../src/router";
+import { inspect } from "@xstate/inspect";
 
-const resolver: Resolver = async (args, other) => {
-    console.log(args, other);
-    const o = await loadFromRemote({
-        remote: {
-            url: "/pages/app_pages_user_dashboard_tsx.js",
-            name: "app_pages_user_dashboard_tsx"
-        }
-    });
-    return {
-        component: (await o()).default,
-        query:{},
-        params: {}
-    }
-};
+inspect({iframe: false});
+
+const children = [
+    {key: "index_tsx", seg: "/"},
+    {key: "user_index_tsx", seg: "user"},
+]
 
 export function App() {
+    console.log('APP');
     return (
         <BaseRouter>
             <div>
-                <p>App Wrapper is here</p>
+                <p>App Wrapper Greetings!</p>
             </div>
-            <RouterProvider segs={["/", "user"]} resolver={resolver} />
+            <RouterProvider segs={children} />
+            <b>belo</b>
         </BaseRouter>
     )
 }

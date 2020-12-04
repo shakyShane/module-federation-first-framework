@@ -1,12 +1,13 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { assign, DoneInvokeEvent, Interpreter, Machine, send } from 'xstate';
 import { v4 as uuidv4 } from 'uuid';
 import { useMachine, useService } from '@xstate/react';
 import { createContext, PropsWithChildren, useContext, useMemo } from 'react';
 import { BrowserHistory, createBrowserHistory, History } from 'history';
-import { matchPath } from 'react-router/matchPath';
 import debugpkg from 'debug';
 import { pure } from 'xstate/lib/actions';
+import {pageLoader} from "./page-loader";
+import matchPath from "./match-path";
 const debug = debugpkg('router');
 const trace = debugpkg('router:trace');
 
@@ -14,7 +15,7 @@ type Context = {
     location: History['location'];
     depth: number;
     parents: Array<string>;
-    segs: string[];
+    segs: Seg[];
     component: null | any;
     resolveData: {
         loading: boolean;
@@ -33,7 +34,7 @@ type Events =
     | { type: "xstate.init"; }
     | { type: "HISTORY_EVT"; location: History["location"]; depth: number };
 
-export type Resolver = (location: History['location'], depth: number) => Promise<ResolveResult>;
+export type Resolver = (location: History['location'], depth: number, parents: string[], segs: Seg[]) => Promise<ResolveResult>;
 
 export type DataLoader = (resolve: ResolveData) => Promise<any>;
 
@@ -51,7 +52,7 @@ type ResolveData = {
 const createRouterMachine = (
     id: string,
     parents: Array<string>,
-    segs: string[],
+    segs: Seg[],
     depth: number,
     location: History['location'],
     resolver?: Resolver,
@@ -133,7 +134,7 @@ const createRouterMachine = (
                         return null;
                     }
                     trace('--> pathname=%o, depth=%o parents=%o', location.pathname, ctx.depth, ctx.parents);
-                    const output = await resolver(location, ctx.depth);
+                    const output = await resolver(location, ctx.depth, ctx.parents, ctx.segs);
                     trace('++ resolved %o', output);
                     return { ...output, location };
                 },
@@ -206,17 +207,25 @@ export const RouterContext = createContext<{
     parents: defaultParents,
 });
 
+type Seg = {
+    key: string;
+    seg: string;
+};
 type ProviderProps = {
     dataLoader?: DataLoader;
     resolver?: Resolver;
     fallback?: () => React.ReactNode;
-    segs: string[];
+    segs: Seg[];
 };
 const noopDataLoader = () => Promise.resolve({});
 const noopResolver = () => Promise.resolve({});
 export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
-    const { dataLoader = noopDataLoader, resolver, segs } = props;
-    const { history, service: baseRouterService, send: baseRouterSend } = useContext(BaseRouterContext);
+    const { dataLoader = noopDataLoader, resolver = pageLoader, segs } = props;
+    const baseRouter = useContext(BaseRouterContext);
+    if (!baseRouter.send) {
+        throw new Error("baseRouter.send absent, likely an issue with BaseRouterContext");
+    }
+    const { history, service: baseRouterService, send: baseRouterSend } = baseRouter;
     const { send: parentSend, service: parentService, prev, parents } = useContext(RouterContext);
     const currentDepth = parentSend === null ? 0 : prev + 1;
     const machine = useMemo(() => {
@@ -238,11 +247,16 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
     useEffect(() => {
         const matchers: Matcher[] = [];
         segs.forEach((seg) => {
-            const joined = '/' + parents.concat(seg).join('/');
+            const joined = seg.seg === "/" ? "/" : '/' + parents.concat(seg.seg).join('/');
+
             matchers.push({ depth: currentDepth, path: joined });
         });
-        // debug('sending matchers %o', matchers);
-        baseRouterSend({ type: 'REGISTER', matchers });
+        if (typeof baseRouterSend !== "function") {
+            console.warn("typeof baseRouterSend !== \"function\"", baseRouterSend)
+        } else {
+            // debug('sending matchers %o', matchers);
+            baseRouterSend({ type: 'REGISTER', matchers });
+        }
         const listenBase = baseRouterService.subscribe((x: any) => {
             if (x.event.type === '@external.TRIGGER_RESOLVE') {
                 if (x.event.depth <= currentDepth) {
@@ -252,6 +266,7 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
         });
 
         return () => {
+
             baseRouterSend({ type: 'UNREGISTER', depth: currentDepth });
             return listenBase.unsubscribe();
         };
@@ -260,9 +275,11 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
     const baseParents = useMemo(() => {
         const urlSegs = [...history.location.pathname.slice(1).split('/')].filter(Boolean);
         const subject = urlSegs[currentDepth];
-        const match = history.location.pathname === '/' ? '/' : segs.find((seg) => subject === seg);
-        if (match) {
+        const match = history.location.pathname === '/' ? '/' : segs.find((seg) => subject === seg.seg);
+        if (typeof match === "string") {
             return parents.concat(match);
+        } else if (match) {
+            return parents.concat(match.seg);
         }
         return parents;
     }, [history.location.pathname, currentDepth, segs, parents]);

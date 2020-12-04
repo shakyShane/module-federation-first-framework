@@ -23,8 +23,8 @@ const stats = {
 const resolve = {
     extensions: [".ts", ".tsx", ".js", ".json"],
     alias: {
-        "react": "preact/compat",
-        "react-dom": "preact/compat",
+        // "react": "preact/compat",
+        // "react-dom": "preact/compat",
     }
 }
 const devtool = "source-map";
@@ -41,12 +41,20 @@ const moduleRules = {
         }
     ]
 };
+const shared =
+    // ...Object.keys(require("./package.json").dependencies).filter(x => x !== "react"),
+    {
+        react: {
+            import: false,
+            singleton: true // make sure only a single react module is used
+        }
+    };
+// ];
 
 /**
  * @return import("webpack").Configuration
  */
 function main(mode = "development") {
-    console.log("env");
     const remotes = slugs.reduce((acc, item) => {
         acc[item.slug] = item.slug + "@" + item.slug + ".js";
         return acc;
@@ -58,7 +66,7 @@ function main(mode = "development") {
      */
     return {
         name: "app",
-        mode,
+        mode: "development",
         devtool,
         entry: {
             main: "./app/index.tsx",
@@ -72,19 +80,20 @@ function main(mode = "development") {
         optimization,
         resolve,
         module: moduleRules,
+        devServer: {
+            contentBase: path.join(__dirname, 'dist'),
+            compress: true,
+            port: 9000
+        },
         plugins: [
             new ESBuildPlugin(),
             new ModuleFederationPlugin({
-                name: "app_main",
+                name: "app",
                 // List of remotes with URLs
-                remotes: remotes,
+                // remotes: remotes,
 
                 // list of shared modules with optional options
-                shared: {
-                    react: {
-                        singleton: true // make sure only a single react module is used
-                    }
-                }
+                shared: ["react", "react-dom", "./src/router"]
             }),
             new HtmlWebpackPlugin({
                 template: "html/index.html"
@@ -135,6 +144,7 @@ function perPage() {
         plugins: [
             new ESBuildPlugin(),
             ...slugs.map(({slug, page}) => new ModuleFederationPlugin({
+                library: { type: "var", name: slug },
                 name: slug,
                 // List of remotes with URLs
                 exposes: {
@@ -142,12 +152,7 @@ function perPage() {
                 },
 
                 // list of shared modules with optional options
-                shared: {
-                    react: {
-                        import: false,
-                        singleton: true // make sure only a single react module is used
-                    }
-                }
+                shared: ["react", "react-dom", "./src/router"]
             }))
         ]
     });
