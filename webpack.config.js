@@ -2,17 +2,17 @@ const path = require("path");
 const {ESBuildPlugin, ESBuildMinifyPlugin} = require('esbuild-loader')
 const {ModuleFederationPlugin} = require('webpack').container;
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-// const TerserPlugin = require('terser-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 
 const OUTPUT = path.resolve(__dirname, "dist");
 const optimization = {
     chunkIds: "named", // for this example only: readable filenames in production too
-    nodeEnv: "production", // for this example only: always production version of react
-    minimize: true,
-    minimizer: [
-        // new ESBuildMinifyPlugin({ target: "es2015" }),
-        // new TerserPlugin()
-    ]
+    nodeEnv: "development", // for this example only: always production version of react
+    // minimize: true,
+    // minimizer: [
+    //     // new ESBuildMinifyPlugin({ target: "es2015" }),
+    //     // new TerserPlugin()
+    // ]
 };
 const stats = {
     chunks: false,
@@ -107,7 +107,7 @@ const pages = [
     "./app/pages/user/dashboard.tsx",
 ];
 const slugs = pages.map(page => {
-    return { page, slug: page.slice(2).replace(/[./]/g, "_")}
+    return {page, slug: page.slice(2).replace(/[./]/g, "_")}
 });
 
 /**
@@ -118,41 +118,38 @@ function perPage() {
      * @type import("webpack").Configuration[];
      */
     const configs = [];
-    slugs.forEach((params) => {
-        const {slug, page} = params;
-        configs.push({
-            name: slug,
-            mode: "development",
-            devtool,
-            entry: {},
-            output: {
-                filename: "[name].js",
-                path: OUTPUT,
-                uniqueName: slug
-            },
-            stats,
-            optimization,
-            resolve,
-            module: moduleRules,
-            plugins: [
-                new ESBuildPlugin(),
-                new ModuleFederationPlugin({
-                    name: slug,
-                    // List of remotes with URLs
-                    exposes: {
-                        ".": page,
-                    },
+    configs.push({
+        name: "pages",
+        mode: "development",
+        devtool,
+        entry: {},
+        output: {
+            filename: "[name].js",
+            path: path.join(OUTPUT, "pages"),
+            uniqueName: "something uniquye"
+        },
+        stats,
+        optimization,
+        resolve,
+        module: moduleRules,
+        plugins: [
+            new ESBuildPlugin(),
+            ...slugs.map(({slug, page}) => new ModuleFederationPlugin({
+                name: slug,
+                // List of remotes with URLs
+                exposes: {
+                    ".": page,
+                },
 
-                    // list of shared modules with optional options
-                    shared: {
-                        react: {
-                            import: false,
-                            singleton: true // make sure only a single react module is used
-                        }
+                // list of shared modules with optional options
+                shared: {
+                    react: {
+                        import: false,
+                        singleton: true // make sure only a single react module is used
                     }
-                })
-            ]
-        });
+                }
+            }))
+        ]
     });
     return configs;
 }
