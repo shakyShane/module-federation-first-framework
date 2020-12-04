@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useMachine, useService } from '@xstate/react';
 import { createContext, PropsWithChildren, useContext, useMemo } from 'react';
 import { BrowserHistory, createBrowserHistory, History } from 'history';
-import { matchPath } from 'react-router';
+import { matchPath } from 'react-router/matchPath';
 import debugpkg from 'debug';
 import { pure } from 'xstate/lib/actions';
 const debug = debugpkg('router');

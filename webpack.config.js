@@ -1,23 +1,33 @@
 const path = require("path");
-const {ESBuildPlugin} = require('esbuild-loader')
+const {ESBuildPlugin, ESBuildMinifyPlugin} = require('esbuild-loader')
 const {ModuleFederationPlugin} = require('webpack').container;
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+// const TerserPlugin = require('terser-webpack-plugin');
 
 const OUTPUT = path.resolve(__dirname, "dist");
 const optimization = {
     chunkIds: "named", // for this example only: readable filenames in production too
-    nodeEnv: "production" // for this example only: always production version of react
+    nodeEnv: "production", // for this example only: always production version of react
+    minimize: true,
+    minimizer: [
+        // new ESBuildMinifyPlugin({ target: "es2015" }),
+        // new TerserPlugin()
+    ]
 };
 const stats = {
-    chunks: true,
+    chunks: false,
     modules: false,
-    chunkModules: true,
-    chunkOrigins: true
+    chunkModules: false,
+    chunkOrigins: false
 };
 const resolve = {
-    extensions: [".ts", ".tsx", ".js", ".json"]
+    extensions: [".ts", ".tsx", ".js", ".json"],
+    alias: {
+        "react": "preact/compat",
+        "react-dom": "preact/compat",
+    }
 }
-const devtool = false;
+const devtool = "source-map";
 const moduleRules = {
     rules: [
         {
@@ -25,16 +35,23 @@ const moduleRules = {
             loader: 'esbuild-loader',
             options: {
                 loader: 'tsx', // Or 'ts' if you don't need tsx
-                target: 'es2015'
+                target: 'es2015',
+
             }
         }
     ]
 };
+
 /**
  * @return import("webpack").Configuration
  */
 function main(mode = "development") {
     console.log("env");
+    const remotes = slugs.reduce((acc, item) => {
+        acc[item.slug] = item.slug + "@" + item.slug + ".js";
+        return acc;
+    }, {});
+    console.log(remotes);
 
     /**
      * @type import("webpack").Configuration
@@ -60,9 +77,7 @@ function main(mode = "development") {
             new ModuleFederationPlugin({
                 name: "app_main",
                 // List of remotes with URLs
-                remotes: {
-                    "app_pages_user": "app_pages_user@/app_pages_user.js"
-                },
+                remotes: remotes,
 
                 // list of shared modules with optional options
                 shared: {
@@ -79,13 +94,21 @@ function main(mode = "development") {
 }
 
 module.exports = (mode = "development") => {
+    const perPages = perPage();
     return [
         main(mode),
-        ...perPage()
+        ...perPages,
     ]
 }
 
-const pages = ["./app/pages/user.tsx"];
+const pages = [
+    "./app/pages/index.tsx",
+    "./app/pages/user/index.tsx",
+    "./app/pages/user/dashboard.tsx",
+];
+const slugs = pages.map(page => {
+    return { page, slug: page.slice(2).replace(/[./]/g, "_")}
+});
 
 /**
  * @return import("webpack").Configuration[]
@@ -95,41 +118,41 @@ function perPage() {
      * @type import("webpack").Configuration[];
      */
     const configs = [];
-    pages.forEach(page => {
+    slugs.forEach((params) => {
+        const {slug, page} = params;
         configs.push({
-                name: "app_pages_user",
-                mode: "development",
-                devtool,
-                entry: {},
-                output: {
-                    filename: "[name].js",
-                    path: OUTPUT,
-                    uniqueName: "app_pages_user"
-                },
-                stats,
-                optimization,
-                resolve,
-                module: moduleRules,
-                plugins: [
-                    new ESBuildPlugin(),
-                    new ModuleFederationPlugin({
-                        name: "app_pages_user",
-                        // List of remotes with URLs
-                        exposes: {
-                            ".": "./app/pages/user.tsx"
-                        },
+            name: slug,
+            mode: "development",
+            devtool,
+            entry: {},
+            output: {
+                filename: "[name].js",
+                path: OUTPUT,
+                uniqueName: slug
+            },
+            stats,
+            optimization,
+            resolve,
+            module: moduleRules,
+            plugins: [
+                new ESBuildPlugin(),
+                new ModuleFederationPlugin({
+                    name: slug,
+                    // List of remotes with URLs
+                    exposes: {
+                        ".": page,
+                    },
 
-                        // list of shared modules with optional options
-                        shared: {
-                            react: {
-                                import: false,
-                                singleton: true // make sure only a single react module is used
-                            }
+                    // list of shared modules with optional options
+                    shared: {
+                        react: {
+                            import: false,
+                            singleton: true // make sure only a single react module is used
                         }
-                    })
-                ]
-            }
-        )
-    })
+                    }
+                })
+            ]
+        });
+    });
     return configs;
 }
