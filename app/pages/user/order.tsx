@@ -1,10 +1,12 @@
 import React from "react";
-import { RouterProvider } from "mfr-router";
+import { useResolveData } from "mfr-router";
 
 export function Order() {
+    const d = useResolveData();
+    console.log(d.data);
     return (
         <div>
-            <h3>1 order</h3>
+            <h3>order id: </h3>
         </div>
     );
 }

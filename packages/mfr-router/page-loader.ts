@@ -1,5 +1,6 @@
 import { Resolver } from "./router";
 import { loadFromRemote } from "./loader/load-from-remote";
+import matchPath from "./match-path";
 
 export const pageLoader: Resolver = async function pageLoader(
     location,
@@ -14,9 +15,19 @@ export const pageLoader: Resolver = async function pageLoader(
     const curr = location.pathname === "/" ? "/" : psegs[depth + 1];
     // const pathname = location.pathname;
     const prefix = "app_pages_";
-    const match = segs.find((seg) => {
+
+    let match = segs.find((seg) => {
         return seg.as === curr;
     });
+
+    if (!match) {
+        console.log("NO MATCH, trying exact-pathmatch");
+        match = segs.find((seg) => {
+            const asPath = "/" + parents.concat(seg.as).join("/");
+            return matchPath(location.pathname, { path: asPath, exact: true });
+        });
+    }
+
     if (!match) {
         return {
             component: null,
@@ -24,6 +35,7 @@ export const pageLoader: Resolver = async function pageLoader(
             params: {},
         };
     }
+
     const next = prefix + match.key;
     const o = await loadFromRemote({
         remote: {

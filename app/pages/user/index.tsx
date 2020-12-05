@@ -12,7 +12,7 @@ export function User() {
             </p>
             <p>
                 <Link to={"/user"}>User</Link>{" "}
-                <Link to={"/user/dashboard"}>Dashboard</Link>
+                <Link to={"/user/orders"}>Orders</Link>
             </p>
             <RouterProvider segs={children} />
         </div>

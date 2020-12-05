@@ -140,10 +140,11 @@ const createRouterMachine = (
                         return null;
                     }
                     trace(
-                        "--> pathname=%o, depth=%o parents=%o",
+                        "--> pathname=%o, depth=%o parents=%o segs=%o",
                         location.pathname,
                         ctx.depth,
-                        ctx.parents
+                        ctx.parents,
+                        ctx.segs
                     );
                     const output = await resolver(
                         location,

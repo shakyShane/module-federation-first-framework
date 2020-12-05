@@ -1,1 +1,7 @@
-export { BaseRouter, RouterProvider, Link } from "./router";
+export {
+    BaseRouter,
+    RouterProvider,
+    Link,
+    useResolveData,
+    useRouteData,
+} from "./router";
