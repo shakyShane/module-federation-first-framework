@@ -7,12 +7,12 @@ const TerserPlugin = require('terser-webpack-plugin');
 const OUTPUT = path.resolve(__dirname, "dist");
 const optimization = {
     chunkIds: "named", // for this example only: readable filenames in production too
-    nodeEnv: "development", // for this example only: always production version of react
-    // minimize: true,
-    // minimizer: [
+    nodeEnv: "production", // for this example only: always production version of react
+    minimize: true,
+    minimizer: [
     //     // new ESBuildMinifyPlugin({ target: "es2015" }),
-    //     // new TerserPlugin()
-    // ]
+        new TerserPlugin()
+    ]
 };
 const stats = {
     chunks: false,
@@ -23,8 +23,9 @@ const stats = {
 const resolve = {
     extensions: [".ts", ".tsx", ".js", ".json"],
     alias: {
-        // "react": "preact/compat",
-        // "react-dom": "preact/compat",
+        "mfr-router": path.join(__dirname, "packages", "mfr-router"),
+        "react": "preact/compat",
+        "react-dom": "preact/compat",
     }
 }
 const devtool = "source-map";
@@ -36,25 +37,18 @@ const moduleRules = {
             options: {
                 loader: 'tsx', // Or 'ts' if you don't need tsx
                 target: 'es2015',
-
             }
         }
     ]
 };
-const shared =
-    // ...Object.keys(require("./package.json").dependencies).filter(x => x !== "react"),
-    {
-        react: {
-            import: false,
-            singleton: true // make sure only a single react module is used
-        }
-    };
-// ];
+
+const shared = ["react", "react-dom", "mfr-router"];
+// const sharedNoImport = shared.reduce()
 
 /**
  * @return import("webpack").Configuration
  */
-function main(mode = "development") {
+function main() {
     const remotes = slugs.reduce((acc, item) => {
         acc[item.slug] = item.slug + "@" + item.slug + ".js";
         return acc;
@@ -74,6 +68,7 @@ function main(mode = "development") {
         output: {
             filename: "[name].js",
             path: OUTPUT,
+            publicPath: "/",
             uniqueName: "module-federation-entry"
         },
         stats,
@@ -92,8 +87,8 @@ function main(mode = "development") {
                 // List of remotes with URLs
                 // remotes: remotes,
 
-                // list of shared modules with optional options
-                shared: ["react", "react-dom", "./src/router"]
+                // list of shared modules from shell
+                shared: shared
             }),
             new HtmlWebpackPlugin({
                 template: "html/index.html"
@@ -152,7 +147,11 @@ function perPage() {
                 },
 
                 // list of shared modules with optional options
-                shared: ["react", "react-dom", "./src/router"]
+                shared: {
+                    react: { import: false },
+                    "react-dom": { import: false },
+                    "mfr-router": { import: false },
+                }
             }))
         ]
     });

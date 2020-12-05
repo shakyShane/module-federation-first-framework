@@ -1,5 +1,5 @@
 import * as React from "react"
-import { BaseRouter, RouterProvider } from "../src/router";
+import { BaseRouter, RouterProvider } from "mfr-router";
 import { inspect } from "@xstate/inspect";
 
 inspect({iframe: false});

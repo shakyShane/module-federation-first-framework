@@ -1,5 +1,5 @@
 import React from "react";
-import {Link} from "../../src/router";
+import { Link } from "mfr-router";
 
 export function Home() {
     return (
