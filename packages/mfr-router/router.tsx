@@ -33,14 +33,21 @@ type Context = {
 // prettier-ignore
 type Events =
     | { type: "xstate.init"; }
-    | { type: "HISTORY_EVT"; location: History["location"]; depth: number };
+    | { type: "HISTORY_EVT"; location: History["location"]; depth: number; matchData: MatchData };
 
-export type Resolver = (
-    location: History["location"],
-    depth: number,
-    parents: string[],
-    segs: Seg[]
-) => Promise<ResolveResult>;
+export type MatchData = {
+    path: string;
+    url: string;
+    isExact: boolean;
+    params: Record<string, any>;
+};
+export type ResolverParams = {
+    location: History["location"];
+    depth: number;
+    parents: string[];
+    segs: Seg[];
+};
+export type Resolver = (params: ResolverParams) => Promise<ResolveResult>;
 
 export type DataLoader = (resolve: ResolveData) => Promise<any>;
 
@@ -131,8 +138,9 @@ const createRouterMachine = (
                         switch (evt.type) {
                             case "xstate.init":
                                 return ctx.location;
-                            case "HISTORY_EVT":
+                            case "HISTORY_EVT": {
                                 return evt.location;
+                            }
                         }
                     })();
                     if (!location) {
@@ -146,12 +154,12 @@ const createRouterMachine = (
                         ctx.parents,
                         ctx.segs
                     );
-                    const output = await resolver(
+                    const output = await resolver({
                         location,
-                        ctx.depth,
-                        ctx.parents,
-                        ctx.segs
-                    );
+                        depth: ctx.depth,
+                        parents: ctx.parents,
+                        segs: ctx.segs,
+                    });
                     trace("++ resolved %o", output);
                     return { ...output, location };
                 },
@@ -297,6 +305,7 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
                         type: "HISTORY_EVT",
                         location: x.event.location,
                         depth: x.event.depth,
+                        matchData: x.event.matchData,
                     });
                 }
             }
@@ -366,7 +375,14 @@ type BaseContext = {
 
 //prettier-ignore
 type BaseEvt =
-    | { type: '@external.TRIGGER_RESOLVE'; depth: number; exact: boolean; location: History['location']; action: History['action'] }
+    | {
+        type: '@external.TRIGGER_RESOLVE';
+        depth: number;
+        exact: boolean;
+        location: History['location'];
+        action: History['action'];
+        matchData: any
+}
     | { type: 'REGISTER'; matchers: Matcher[] }
     | { type: 'UNREGISTER'; depth: number }
     | { type: 'HISTORY_EVT'; location: History['location']; action: History['action'] };
@@ -432,13 +448,14 @@ const baseMachine = Machine<BaseContext, Record<string, any>, BaseEvt>(
                             exact: true,
                         });
 
-                        if (exactMatch) {
+                        if (exactMatch.match) {
                             const output = {
                                 type: "@external.TRIGGER_RESOLVE",
-                                depth: exactMatch.depth,
+                                depth: exactMatch.match.depth,
                                 exact: true,
                                 location,
                                 action,
+                                matchData: exactMatch.matchData,
                             };
                             trace("exact match = %o", output);
                             return send(output);
@@ -450,13 +467,14 @@ const baseMachine = Machine<BaseContext, Record<string, any>, BaseEvt>(
                             exact: false,
                         });
 
-                        if (noneExact) {
+                        if (noneExact.match) {
                             const output = {
                                 type: "@external.TRIGGER_RESOLVE",
-                                depth: noneExact.depth,
+                                depth: noneExact.match.depth,
                                 exact: false,
                                 location,
                                 action,
+                                matchData: noneExact.matchData,
                             };
                             trace("none-exact match %o", output);
                             return send(output);
@@ -537,11 +555,16 @@ interface SelectParams {
 
 export function select(inputs: SelectParams) {
     trace("considering %o", inputs);
-    return inputs.inputs.find((m) => {
+    let matchData;
+    let match = inputs.inputs.find((m) => {
         const input = { path: m.path, exact: inputs.exact };
         trace("[select] ? pathname=%o vs %o", inputs.pathname, input);
         const res = matchPath(inputs.pathname, input);
         trace("[select] = %o", res);
+        if (res) {
+            matchData = res;
+        }
         return res;
     });
+    return { match, matchData };
 }

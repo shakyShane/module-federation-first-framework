@@ -1,4 +1,5 @@
 import { pathToRegexp } from "path-to-regexp";
+import { MatchData } from "./router";
 
 const cache = {};
 const cacheLimit = 10000;
@@ -25,7 +26,7 @@ function compilePath(path, options) {
 /**
  * Public API for matching a URL pathname to a path.
  */
-function matchPath(pathname, options = {}): any {
+function matchPath(pathname, options = {}): MatchData | null {
     if (typeof options === "string" || Array.isArray(options)) {
         options = { path: options };
     }

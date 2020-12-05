@@ -3,6 +3,7 @@ const { ESBuildPlugin } = require("esbuild-loader");
 const { ModuleFederationPlugin } = require("webpack").container;
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
+const { sync } = require("glob");
 
 const OUTPUT = path.resolve(__dirname, "dist");
 const optimization = (mode = "production") => {
@@ -54,8 +55,9 @@ const sharedNoImport = shared.reduce((acc, item) => {
 /**
  * @return import("webpack").Configuration
  * @param {"production" | "development"} mode
+ * @param {{page: T, slug: *}[]} slugs
  */
-function main(mode) {
+function main(slugs, mode) {
     const remotes = slugs.reduce((acc, item) => {
         acc[item.slug] = item.slug + "@" + item.slug + ".js";
         return acc;
@@ -108,25 +110,31 @@ function main(mode) {
  */
 module.exports = (_, env) => {
     const { mode = "development" } = env;
-    const perPages = perPage(mode);
-    return [main(mode), ...perPages];
-};
 
-const pages = [
-    "./app/pages/index.tsx",
-    "./app/pages/user/index.tsx",
-    "./app/pages/user/orders.tsx",
-    "./app/pages/user/order.tsx",
-];
-const slugs = pages.map((page) => {
-    return { page, slug: page.slice(2).replace(/[./]/g, "_") };
-});
+    const pages = sync("**/*.tsx", {
+        cwd: path.join(__dirname, "app", "pages"),
+    })
+        .map((m) => "./" + path.join("app", "pages", m))
+        .map((p) => p.replace(/\.tsx$/, ""));
+
+    const slugs = pages.map((page) => {
+        return {
+            page,
+            slug: page.slice(2).replace(/[./]/g, "_"),
+        };
+    });
+
+    const perPages = perPage(pages, slugs, mode);
+    return [main(slugs, mode), ...perPages];
+};
 
 /**
  * @return import("webpack").Configuration[]
  * @param {"production"|"development"} mode
+ * @param {string[]} pages
+ * @param {{page: T, slug: *}[]} slugs
  */
-function perPage(mode) {
+function perPage(pages, slugs, mode) {
     /**
      * @type import("webpack").Configuration[];
      */
@@ -139,7 +147,7 @@ function perPage(mode) {
         output: {
             filename: "[name].js",
             path: path.join(OUTPUT, "pages"),
-            uniqueName: "something uniquye",
+            uniqueName: "app pages",
         },
         stats,
         optimization: optimization(mode),

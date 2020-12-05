@@ -7,8 +7,8 @@ if (process.env.NODE_ENV === "development") {
 }
 
 const children = [
-    { key: "index_tsx", as: "/" },
-    { key: "user_index_tsx", as: "user" },
+    { key: "index", as: "/" },
+    { key: "user_user", as: "user" },
 ];
 
 export function App() {

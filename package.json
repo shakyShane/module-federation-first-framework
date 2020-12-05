@@ -30,6 +30,7 @@
     "@xstate/inspect": "^0.2.0",
     "@xstate/react": "^1.0.3",
     "debug": "^4.3.1",
+    "glob": "7.1.6",
     "history": "^5.0.0",
     "mfr-router": "file:./packages/mfr-router",
     "path-to-regexp": "6.2.0",

@@ -1,14 +1,13 @@
 import React from "react";
 import { useResolveData } from "mfr-router";
 
-export function Order() {
+export function OrdersId() {
     const d = useResolveData();
-    console.log(d.data);
     return (
         <div>
-            <h3>order id: </h3>
+            <h3>order id: {d.data.params.id} </h3>
         </div>
     );
 }
 
-export default Order;
+export default OrdersId;
