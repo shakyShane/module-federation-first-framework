@@ -4,9 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run lint && tsc --noEmit",
     "dev": "webpack serve --history-api-fallback --hot",
-    "build": "npm run clean && webpack",
+    "build": "npm run clean && webpack --mode=production",
+    "prettier": "prettier 'packages/**/*.{ts,tsx}' 'app/**/*.{ts,tsx}' 'webpack.config.js'",
+    "lint": "npm run prettier -- -c",
+    "lint:fix": "npm run prettier -- --write",
     "clean": "rm -rf dist"
   },
   "keywords": [],
@@ -28,13 +31,17 @@
     "@xstate/react": "^1.0.3",
     "debug": "^4.3.1",
     "history": "^5.0.0",
+    "mfr-router": "file:./packages/mfr-router",
     "path-to-regexp": "6.2.0",
     "preact": "^10.5.7",
+    "prettier": "2.2.1",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-router": "^5.2.0",
     "uuid": "^8.3.1",
-    "xstate": "^4.14.1",
-    "mfr-router": "file:./packages/mfr-router"
+    "xstate": "^4.14.1"
+  },
+  "prettier": {
+    "tabWidth": 4
   }
 }

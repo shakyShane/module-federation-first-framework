@@ -1,4 +1,4 @@
-import {pathToRegexp} from "path-to-regexp";
+import { pathToRegexp } from "path-to-regexp";
 
 const cache = {};
 const cacheLimit = 10000;
@@ -25,23 +25,28 @@ function compilePath(path, options) {
 /**
  * Public API for matching a URL pathname to a path.
  */
-function matchPath(pathname, options = {}) {
+function matchPath(pathname, options = {}): any {
     if (typeof options === "string" || Array.isArray(options)) {
         options = { path: options };
     }
 
-    const { path, exact = false, strict = false, sensitive = false } = options;
+    const {
+        path,
+        exact = false,
+        strict = false,
+        sensitive = false,
+    } = options as any;
 
     const paths = [].concat(path);
 
-    return paths.reduce((matched, path) => {
+    return paths.reduce((matched, path): any => {
         if (!path && path !== "") return null;
         if (matched) return matched;
 
         const { regexp, keys } = compilePath(path, {
             end: exact,
             strict,
-            sensitive
+            sensitive,
         });
         const match = regexp.exec(pathname);
 
@@ -59,7 +64,7 @@ function matchPath(pathname, options = {}) {
             params: keys.reduce((memo, key, index) => {
                 memo[key.name] = values[index];
                 return memo;
-            }, {})
+            }, {}),
         };
     }, null);
 }

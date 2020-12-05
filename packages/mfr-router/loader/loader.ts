@@ -1,34 +1,33 @@
-import { deferred } from './deferred';
+import { deferred } from "./deferred";
 
 const scriptsCache = {};
 
 export const loadScript = async (src) => {
+    if (scriptsCache[src]) {
+        return scriptsCache;
+    }
 
-  if (scriptsCache[src]) {
-    return scriptsCache;
-  }
+    const dfd: any = deferred({ timeout: 30000 });
 
-  const dfd = deferred({ timeout: 30000 });
+    const { document: doc } = window;
 
-  const { document: doc } = window;
+    const script = doc.createElement("script");
 
-  const script = doc.createElement("script");
+    script.setAttribute("type", "text/javascript");
+    script.setAttribute("src", src);
 
-  script.setAttribute("type", "text/javascript");
-  script.setAttribute("src", src);
+    script.addEventListener("error", (err) => {
+        scriptsCache[src] = null;
+        dfd.reject(err);
+    });
 
-  script.addEventListener("error", err => {
-    scriptsCache[src] = null;
-    dfd.reject(err);
-  });
+    script.addEventListener("load", () => {
+        dfd.resolve(script);
+    });
 
-  script.addEventListener("load", () => {
-    dfd.resolve(script);
-  });
+    doc.head.appendChild(script);
 
-  doc.head.appendChild(script);
+    scriptsCache[src] = dfd;
 
-  scriptsCache[src] = dfd;
-
-  return dfd;
+    return dfd;
 };

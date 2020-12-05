@@ -1,18 +1,19 @@
-import React, { useCallback, useEffect } from 'react';
-import { assign, DoneInvokeEvent, Interpreter, Machine, send } from 'xstate';
-import { v4 as uuidv4 } from 'uuid';
-import { useMachine, useService } from '@xstate/react';
-import { createContext, PropsWithChildren, useContext, useMemo } from 'react';
-import { BrowserHistory, createBrowserHistory, History } from 'history';
-import debugpkg from 'debug';
-import { pure } from 'xstate/lib/actions';
-import {pageLoader} from "./page-loader";
+import React, { useCallback, useEffect } from "react";
+import { assign, DoneInvokeEvent, Interpreter, Machine, send } from "xstate";
+import { v4 as uuidv4 } from "uuid";
+import { useMachine, useService } from "@xstate/react";
+import { createContext, PropsWithChildren, useContext, useMemo } from "react";
+import { BrowserHistory, createBrowserHistory, History } from "history";
+import debugpkg from "debug";
+import { pure } from "xstate/lib/actions";
+import { pageLoader } from "./page-loader";
 import matchPath from "./match-path";
-const debug = debugpkg('router');
-const trace = debugpkg('router:trace');
+
+const debug = debugpkg("router");
+const trace = debugpkg("router:trace");
 
 type Context = {
-    location: History['location'];
+    location: History["location"];
     depth: number;
     parents: Array<string>;
     segs: Seg[];
@@ -34,7 +35,12 @@ type Events =
     | { type: "xstate.init"; }
     | { type: "HISTORY_EVT"; location: History["location"]; depth: number };
 
-export type Resolver = (location: History['location'], depth: number, parents: string[], segs: Seg[]) => Promise<ResolveResult>;
+export type Resolver = (
+    location: History["location"],
+    depth: number,
+    parents: string[],
+    segs: Seg[]
+) => Promise<ResolveResult>;
 
 export type DataLoader = (resolve: ResolveData) => Promise<any>;
 
@@ -54,14 +60,14 @@ const createRouterMachine = (
     parents: Array<string>,
     segs: Seg[],
     depth: number,
-    location: History['location'],
+    location: History["location"],
     resolver?: Resolver,
-    dataLoader?: DataLoader,
+    dataLoader?: DataLoader
 ) => {
     return Machine<Context, Record<string, any>, Events>(
         {
             id,
-            initial: 'resolving',
+            initial: "resolving",
             context: {
                 location,
                 depth: depth,
@@ -83,27 +89,27 @@ const createRouterMachine = (
                 },
             },
             on: {
-                HISTORY_EVT: [{ target: 'resolving', cond: 'matchedDepth' }],
+                HISTORY_EVT: [{ target: "resolving", cond: "matchedDepth" }],
             },
             states: {
                 invalid: {},
                 resolving: {
-                    entry: ['assignResolveLoading'],
+                    entry: ["assignResolveLoading"],
                     invoke: {
-                        src: 'resolveComponent',
+                        src: "resolveComponent",
                         onDone: {
-                            target: 'loadingData',
-                            actions: ['assignResolveData'],
+                            target: "loadingData",
+                            actions: ["assignResolveData"],
                         },
                     },
                 },
                 loadingData: {
-                    entry: 'assignDataLoading',
+                    entry: "assignDataLoading",
                     invoke: {
-                        src: 'loadData',
+                        src: "loadData",
                         onDone: {
-                            target: 'dataLoaded',
-                            actions: 'assignRouteData',
+                            target: "dataLoaded",
+                            actions: "assignRouteData",
                         },
                     },
                 },
@@ -123,19 +129,29 @@ const createRouterMachine = (
                     }
                     const location = (() => {
                         switch (evt.type) {
-                            case 'xstate.init':
+                            case "xstate.init":
                                 return ctx.location;
-                            case 'HISTORY_EVT':
+                            case "HISTORY_EVT":
                                 return evt.location;
                         }
                     })();
                     if (!location) {
-                        trace('location data not found in event');
+                        trace("location data not found in event");
                         return null;
                     }
-                    trace('--> pathname=%o, depth=%o parents=%o', location.pathname, ctx.depth, ctx.parents);
-                    const output = await resolver(location, ctx.depth, ctx.parents, ctx.segs);
-                    trace('++ resolved %o', output);
+                    trace(
+                        "--> pathname=%o, depth=%o parents=%o",
+                        location.pathname,
+                        ctx.depth,
+                        ctx.parents
+                    );
+                    const output = await resolver(
+                        location,
+                        ctx.depth,
+                        ctx.parents,
+                        ctx.segs
+                    );
+                    trace("++ resolved %o", output);
                     return { ...output, location };
                 },
                 loadData: async (ctx, evt) => {
@@ -143,7 +159,7 @@ const createRouterMachine = (
                         return null;
                     }
                     const output = await dataLoader(ctx.resolveData.data);
-                    trace('output from loadData = %o', output);
+                    trace("output from loadData = %o", output);
                     return output;
                 },
             },
@@ -189,7 +205,7 @@ const createRouterMachine = (
                     },
                 }),
             },
-        },
+        }
     );
 };
 
@@ -209,7 +225,7 @@ export const RouterContext = createContext<{
 
 type Seg = {
     key: string;
-    seg: string;
+    as: string;
 };
 type ProviderProps = {
     dataLoader?: DataLoader;
@@ -219,14 +235,26 @@ type ProviderProps = {
 };
 const noopDataLoader = () => Promise.resolve({});
 const noopResolver = () => Promise.resolve({});
+
 export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
     const { dataLoader = noopDataLoader, resolver = pageLoader, segs } = props;
     const baseRouter = useContext(BaseRouterContext);
     if (!baseRouter.send) {
-        throw new Error("baseRouter.send absent, likely an issue with BaseRouterContext");
+        throw new Error(
+            "baseRouter.send absent, likely an issue with BaseRouterContext"
+        );
     }
-    const { history, service: baseRouterService, send: baseRouterSend } = baseRouter;
-    const { send: parentSend, service: parentService, prev, parents } = useContext(RouterContext);
+    const {
+        history,
+        service: baseRouterService,
+        send: baseRouterSend,
+    } = baseRouter;
+    const {
+        send: parentSend,
+        service: parentService,
+        prev,
+        parents,
+    } = useContext(RouterContext);
     const currentDepth = parentSend === null ? 0 : prev + 1;
     const machine = useMemo(() => {
         return createRouterMachine(
@@ -236,7 +264,7 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
             currentDepth,
             history.location,
             resolver,
-            dataLoader,
+            dataLoader
         );
     }, [currentDepth, dataLoader, history.location, parents, resolver, segs]);
 
@@ -247,39 +275,51 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
     useEffect(() => {
         const matchers: Matcher[] = [];
         segs.forEach((seg) => {
-            const joined = seg.seg === "/" ? "/" : '/' + parents.concat(seg.seg).join('/');
+            const joined =
+                seg.as === "/" ? "/" : "/" + parents.concat(seg.as).join("/");
 
             matchers.push({ depth: currentDepth, path: joined });
         });
         if (typeof baseRouterSend !== "function") {
-            console.warn("typeof baseRouterSend !== \"function\"", baseRouterSend)
+            console.warn(
+                'typeof baseRouterSend !== "function"',
+                baseRouterSend
+            );
         } else {
             // debug('sending matchers %o', matchers);
-            baseRouterSend({ type: 'REGISTER', matchers });
+            baseRouterSend({ type: "REGISTER", matchers });
         }
         const listenBase = baseRouterService.subscribe((x: any) => {
-            if (x.event.type === '@external.TRIGGER_RESOLVE') {
+            if (x.event.type === "@external.TRIGGER_RESOLVE") {
                 if (x.event.depth <= currentDepth) {
-                    send({ type: 'HISTORY_EVT', location: x.event.location, depth: x.event.depth });
+                    send({
+                        type: "HISTORY_EVT",
+                        location: x.event.location,
+                        depth: x.event.depth,
+                    });
                 }
             }
         });
 
         return () => {
-
-            baseRouterSend({ type: 'UNREGISTER', depth: currentDepth });
+            baseRouterSend({ type: "UNREGISTER", depth: currentDepth });
             return listenBase.unsubscribe();
         };
     }, [baseRouterSend, baseRouterService, currentDepth, parents, segs, send]);
 
     const baseParents = useMemo(() => {
-        const urlSegs = [...history.location.pathname.slice(1).split('/')].filter(Boolean);
+        const urlSegs = [
+            ...history.location.pathname.slice(1).split("/"),
+        ].filter(Boolean);
         const subject = urlSegs[currentDepth];
-        const match = history.location.pathname === '/' ? '/' : segs.find((seg) => subject === seg.seg);
+        const match =
+            history.location.pathname === "/"
+                ? "/"
+                : segs.find((seg) => subject === seg.as);
         if (typeof match === "string") {
             return parents.concat(match);
         } else if (match) {
-            return parents.concat(match.seg);
+            return parents.concat(match.as);
         }
         return parents;
     }, [history.location.pathname, currentDepth, segs, parents]);
@@ -295,7 +335,9 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
 
     return (
         <RouterContext.Provider value={api}>
-            {state.context.component ? React.createElement(state.context.component) : null}
+            {state.context.component
+                ? React.createElement(state.context.component)
+                : null}{" "}
             {props.children}
         </RouterContext.Provider>
     );
@@ -309,7 +351,7 @@ type RouterProps = {
 const bh = createBrowserHistory();
 const BaseRouterContext = createContext<{
     history: BrowserHistory;
-    send: Interpreter<any, any, BaseEvt>['send'];
+    send: Interpreter<any, any, BaseEvt>["send"];
     service: any;
 }>({
     send: null as any,
@@ -330,8 +372,8 @@ type BaseEvt =
 
 const baseMachine = Machine<BaseContext, Record<string, any>, BaseEvt>(
     {
-        id: 'base-router',
-        initial: 'idle',
+        id: "base-router",
+        initial: "idle",
         context: {
             matchers: [],
         },
@@ -339,9 +381,9 @@ const baseMachine = Machine<BaseContext, Record<string, any>, BaseEvt>(
             idle: {},
         },
         on: {
-            HISTORY_EVT: { actions: 'notifyRouters' },
-            REGISTER: { actions: 'assignMatchers' },
-            UNREGISTER: { actions: 'removeMatchers' },
+            HISTORY_EVT: { actions: "notifyRouters" },
+            REGISTER: { actions: "assignMatchers" },
+            UNREGISTER: { actions: "removeMatchers" },
         },
     },
     {
@@ -349,7 +391,7 @@ const baseMachine = Machine<BaseContext, Record<string, any>, BaseEvt>(
             assignMatchers: assign({
                 matchers: (ctx, evt) => {
                     switch (evt.type) {
-                        case 'REGISTER': {
+                        case "REGISTER": {
                             const matches = ctx.matchers.concat(evt.matchers);
                             return matches;
                         }
@@ -361,8 +403,10 @@ const baseMachine = Machine<BaseContext, Record<string, any>, BaseEvt>(
             removeMatchers: assign({
                 matchers: (ctx, evt) => {
                     switch (evt.type) {
-                        case 'UNREGISTER': {
-                            return ctx.matchers.filter((ctxM) => ctxM.depth !== evt.depth);
+                        case "UNREGISTER": {
+                            return ctx.matchers.filter(
+                                (ctxM) => ctxM.depth !== evt.depth
+                            );
                         }
                         default:
                             return ctx.matchers;
@@ -371,10 +415,11 @@ const baseMachine = Machine<BaseContext, Record<string, any>, BaseEvt>(
             }),
             notifyRouters: pure((ctx, evt) => {
                 switch (evt.type) {
-                    case 'HISTORY_EVT': {
+                    case "HISTORY_EVT": {
                         const location = evt.location;
                         const action = evt.action;
-                        const segLength = location.pathname.slice(1).split('/').length;
+                        const segLength = location.pathname.slice(1).split("/")
+                            .length;
 
                         const depthFirstsorted = ctx.matchers
                             .filter((x) => x.depth + 1 <= segLength)
@@ -388,13 +433,13 @@ const baseMachine = Machine<BaseContext, Record<string, any>, BaseEvt>(
 
                         if (exactMatch) {
                             const output = {
-                                type: '@external.TRIGGER_RESOLVE',
+                                type: "@external.TRIGGER_RESOLVE",
                                 depth: exactMatch.depth,
                                 exact: true,
                                 location,
                                 action,
                             };
-                            trace('exact match = %o', output);
+                            trace("exact match = %o", output);
                             return send(output);
                         }
 
@@ -406,30 +451,30 @@ const baseMachine = Machine<BaseContext, Record<string, any>, BaseEvt>(
 
                         if (noneExact) {
                             const output = {
-                                type: '@external.TRIGGER_RESOLVE',
+                                type: "@external.TRIGGER_RESOLVE",
                                 depth: noneExact.depth,
                                 exact: false,
                                 location,
                                 action,
                             };
-                            trace('none-exact match %o', output);
+                            trace("none-exact match %o", output);
                             return send(output);
                         }
 
-                        console.warn('no matching route found');
+                        console.warn("no matching route found");
                     }
                 }
                 return undefined;
             }),
         },
-    },
+    }
 );
 
 export function BaseRouter(props: PropsWithChildren<any>) {
     const [state, send, service] = useMachine(baseMachine, { devTools: true });
     useEffect(() => {
         const unlisten = bh.listen(({ location, action }) => {
-            send({ type: 'HISTORY_EVT', location, action });
+            send({ type: "HISTORY_EVT", location, action });
         });
         return () => {
             unlisten();
@@ -438,7 +483,11 @@ export function BaseRouter(props: PropsWithChildren<any>) {
     const api = useMemo(() => {
         return { history: bh, send, service };
     }, [send, service]);
-    return <BaseRouterContext.Provider value={api}>{props.children}</BaseRouterContext.Provider>;
+    return (
+        <BaseRouterContext.Provider value={api}>
+            {props.children}
+        </BaseRouterContext.Provider>
+    );
 }
 
 export function Outlet() {
@@ -465,7 +514,7 @@ export function Link(props: PropsWithChildren<any>) {
             evt.preventDefault();
             history.push(evt.target.pathname);
         },
-        [history],
+        [history]
     );
     return (
         <a href={props.to} onClick={onClick}>
@@ -486,12 +535,12 @@ interface SelectParams {
 }
 
 export function select(inputs: SelectParams) {
-    trace('considering %o', inputs);
+    trace("considering %o", inputs);
     return inputs.inputs.find((m) => {
         const input = { path: m.path, exact: inputs.exact };
-        trace('[select] ? pathname=%o vs %o', inputs.pathname, input);
+        trace("[select] ? pathname=%o vs %o", inputs.pathname, input);
         const res = matchPath(inputs.pathname, input);
-        trace('[select] = %o', res);
+        trace("[select] = %o", res);
         return res;
     });
 }

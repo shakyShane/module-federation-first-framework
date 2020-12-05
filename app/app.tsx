@@ -1,16 +1,17 @@
-import * as React from "react"
+import * as React from "react";
 import { BaseRouter, RouterProvider } from "mfr-router";
-import { inspect } from "@xstate/inspect";
 
-inspect({iframe: false});
+if (process.env.NODE_ENV === "development") {
+    const { inspect } = require("@xstate/inspect");
+    inspect({ iframe: false });
+}
 
 const children = [
-    {key: "index_tsx", seg: "/"},
-    {key: "user_index_tsx", seg: "user"},
-]
+    { key: "index_tsx", as: "/" },
+    { key: "user_index_tsx", as: "user" },
+];
 
 export function App() {
-    console.log('APP');
     return (
         <BaseRouter>
             <div>
@@ -19,5 +20,5 @@ export function App() {
             <RouterProvider segs={children} />
             <b>belo</b>
         </BaseRouter>
-    )
+    );
 }

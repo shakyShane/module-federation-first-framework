@@ -1,46 +1,49 @@
 import { loadScript } from "./loader";
 
-export const loadAndInitiateWebpackContainer = async remote => {
-  const { name, url } = remote;
+declare var __webpack_init_sharing__: any;
+declare var __webpack_share_scopes__: any;
 
-  await loadScript(url);
+export const loadAndInitiateWebpackContainer = async (remote) => {
+    const { name, url } = remote;
 
-  // Initializes the share scope. This fills it with known provided modules from this build and all remotes
-  await __webpack_init_sharing__("default");
-  const container = window[name]; // or get the container somewhere else
+    await loadScript(url);
 
-  if (!container || !container.init)
-    throw new Error(`Cannot load external remote: ${name} from url: ${url}`);
+    // Initializes the share scope. This fills it with known provided modules from this build and all remotes
+    await __webpack_init_sharing__("default");
+    const container: any = window[name]; // or get the container somewhere else
 
-  // Initialize the container, it may provide shared modules
-  await container.init(__webpack_share_scopes__.default);
+    if (!container || !container.init)
+        throw new Error(
+            `Cannot load external remote: ${name} from url: ${url}`
+        );
 
-  return container;
-}
+    // Initialize the container, it may provide shared modules
+    await container.init(__webpack_share_scopes__.default);
+
+    return container;
+};
 
 export const loadFromRemote = ({ remote = {} } = {}) => {
-  const { name, url } = remote;
+    const { name, url } = remote as any;
 
-  if (!url) throw new Error("Missing remote url");
-  if (!name) throw new Error("Missing remote name");
+    if (!url) throw new Error("Missing remote url");
+    if (!name) throw new Error("Missing remote name");
 
-  return async () => {
+    return async () => {
+        const container = await loadAndInitiateWebpackContainer({ url, name });
 
-    const container = await loadAndInitiateWebpackContainer({ url, name });
+        if (!container.get)
+            throw new Error(
+                `Cannot load external remote: ${name} from url: ${url}`
+            );
 
-    if (!container.get)
-      throw new Error(`Cannot load external remote: ${name} from url: ${url}`);
+        const factory = await container.get(".");
 
-    const factory = await container.get(".");
+        if (!factory)
+            throw new Error(`Cannot load in remote: ${name} from url ${url}`);
 
+        const Module = factory();
 
-    if (!factory)
-      throw new Error(
-        `Cannot load in remote: ${name} from url ${url}`
-      );
-
-    const Module = factory();
-
-    return Module;
-  };
+        return Module;
+    };
 };

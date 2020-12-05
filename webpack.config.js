@@ -1,54 +1,61 @@
 const path = require("path");
-const {ESBuildPlugin, ESBuildMinifyPlugin} = require('esbuild-loader')
-const {ModuleFederationPlugin} = require('webpack').container;
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
+const { ESBuildPlugin } = require("esbuild-loader");
+const { ModuleFederationPlugin } = require("webpack").container;
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const TerserPlugin = require("terser-webpack-plugin");
 
 const OUTPUT = path.resolve(__dirname, "dist");
-const optimization = {
-    chunkIds: "named", // for this example only: readable filenames in production too
-    nodeEnv: "production", // for this example only: always production version of react
-    minimize: true,
-    minimizer: [
-    //     // new ESBuildMinifyPlugin({ target: "es2015" }),
-        new TerserPlugin()
-    ]
+const optimization = (mode = "production") => {
+    return {
+        chunkIds: "named", // for this example only: readable filenames in production too
+        nodeEnv: mode, // for this example only: always production version of react
+        minimize: mode === "production",
+        minimizer: [
+            // new ESBuildMinifyPlugin({ target: "es2015" }),
+            mode === "production" && new TerserPlugin(),
+        ].filter(Boolean),
+    };
 };
 const stats = {
     chunks: false,
     modules: false,
     chunkModules: false,
-    chunkOrigins: false
+    chunkOrigins: false,
 };
 const resolve = {
     extensions: [".ts", ".tsx", ".js", ".json"],
     alias: {
         "mfr-router": path.join(__dirname, "packages", "mfr-router"),
-        "react": "preact/compat",
+        react: "preact/compat",
         "react-dom": "preact/compat",
-    }
-}
+    },
+};
 const devtool = "source-map";
 const moduleRules = {
     rules: [
         {
             test: /\.tsx?$/,
-            loader: 'esbuild-loader',
+            loader: "esbuild-loader",
             options: {
-                loader: 'tsx', // Or 'ts' if you don't need tsx
-                target: 'es2015',
-            }
-        }
-    ]
+                loader: "tsx", // Or 'ts' if you don't need tsx
+                target: "es2015",
+            },
+        },
+    ],
 };
 
-const shared = ["react", "react-dom", "mfr-router"];
-// const sharedNoImport = shared.reduce()
+const shared = ["react", "react-dom", "xstate", "@xstate/react", "mfr-router"];
+
+const sharedNoImport = shared.reduce((acc, item) => {
+    acc[item] = { import: false };
+    return acc;
+}, {});
 
 /**
  * @return import("webpack").Configuration
+ * @param {"production" | "development"} mode
  */
-function main() {
+function main(mode) {
     const remotes = slugs.reduce((acc, item) => {
         acc[item.slug] = item.slug + "@" + item.slug + ".js";
         return acc;
@@ -69,16 +76,16 @@ function main() {
             filename: "[name].js",
             path: OUTPUT,
             publicPath: "/",
-            uniqueName: "module-federation-entry"
+            uniqueName: "module-federation-entry",
         },
         stats,
-        optimization,
+        optimization: optimization(mode),
         resolve,
         module: moduleRules,
         devServer: {
-            contentBase: path.join(__dirname, 'dist'),
+            contentBase: path.join(__dirname, "dist"),
             compress: true,
-            port: 9000
+            port: 9000,
         },
         plugins: [
             new ESBuildPlugin(),
@@ -88,72 +95,73 @@ function main() {
                 // remotes: remotes,
 
                 // list of shared modules from shell
-                shared: shared
+                shared: shared,
             }),
             new HtmlWebpackPlugin({
-                template: "html/index.html"
-            })
-        ]
-    }
+                template: "html/index.html",
+            }),
+        ],
+    };
 }
 
-module.exports = (mode = "development") => {
-    const perPages = perPage();
-    return [
-        main(mode),
-        ...perPages,
-    ]
-}
+/**
+ */
+module.exports = (_, env) => {
+    const { mode = "development" } = env;
+    const perPages = perPage(mode);
+    return [main(mode), ...perPages];
+};
 
 const pages = [
     "./app/pages/index.tsx",
     "./app/pages/user/index.tsx",
-    "./app/pages/user/dashboard.tsx",
+    "./app/pages/user/orders.tsx",
+    "./app/pages/user/order.tsx",
 ];
-const slugs = pages.map(page => {
-    return {page, slug: page.slice(2).replace(/[./]/g, "_")}
+const slugs = pages.map((page) => {
+    return { page, slug: page.slice(2).replace(/[./]/g, "_") };
 });
 
 /**
  * @return import("webpack").Configuration[]
+ * @param {"production"|"development"} mode
  */
-function perPage() {
+function perPage(mode) {
     /**
      * @type import("webpack").Configuration[];
      */
     const configs = [];
     configs.push({
         name: "pages",
-        mode: "development",
+        mode,
         devtool,
         entry: {},
         output: {
             filename: "[name].js",
             path: path.join(OUTPUT, "pages"),
-            uniqueName: "something uniquye"
+            uniqueName: "something uniquye",
         },
         stats,
-        optimization,
+        optimization: optimization(mode),
         resolve,
         module: moduleRules,
         plugins: [
             new ESBuildPlugin(),
-            ...slugs.map(({slug, page}) => new ModuleFederationPlugin({
-                library: { type: "var", name: slug },
-                name: slug,
-                // List of remotes with URLs
-                exposes: {
-                    ".": page,
-                },
+            ...slugs.map(
+                ({ slug, page }) =>
+                    new ModuleFederationPlugin({
+                        library: { type: "var", name: slug },
+                        name: slug,
+                        // List of remotes with URLs
+                        exposes: {
+                            ".": page,
+                        },
 
-                // list of shared modules with optional options
-                shared: {
-                    react: { import: false },
-                    "react-dom": { import: false },
-                    "mfr-router": { import: false },
-                }
-            }))
-        ]
+                        // list of shared modules with optional options
+                        shared: sharedNoImport,
+                    })
+            ),
+        ],
     });
     return configs;
 }

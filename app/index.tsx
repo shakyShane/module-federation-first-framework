@@ -7,6 +7,7 @@
 // This also requires an async boundary (import())
 
 // At this point shared modules initialized and remote modules are loaded
+// @ts-ignore
 import("./bootstrap");
 
 // It's possible to place more code here to do stuff on page init
