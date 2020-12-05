@@ -8,6 +8,7 @@ export const pageLoader: Resolver = async function pageLoader({
     parents,
     segs,
 }) {
+    await new Promise((res) => setTimeout(res, 500));
     const psegs = ["/", ...location.pathname.slice(1).split("/")].filter(
         Boolean
     );

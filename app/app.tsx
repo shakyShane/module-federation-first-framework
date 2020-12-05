@@ -14,11 +14,16 @@ const children = [
 export function App() {
     return (
         <BaseRouter>
-            <div>
-                <p>App Wrapper Greetings!</p>
+            <div style={{ position: "relative" }}>
+                <header style={{ padding: "20px", background: "orange" }}>
+                    <strong>MFR Router</strong>{" "}
+                    <small>Module Federation Ready Router</small>
+                </header>
+                <RouterProvider segs={children} />
+                <footer style={{ padding: "20px", background: "#a4a4d8" }}>
+                    <strong>MFR Router</strong>
+                </footer>
             </div>
-            <RouterProvider segs={children} />
-            <b>belo</b>
         </BaseRouter>
     );
 }

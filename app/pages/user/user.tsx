@@ -6,12 +6,13 @@ const children = [{ key: "user_orders_orders", as: "orders" }];
 export function User() {
     return (
         <div>
-            <h1>User</h1>
+            <p>
+                <strong>User</strong>
+            </p>
             <p>
                 <Link to={"/"}>Home</Link>
             </p>
             <p>
-                <Link to={"/user"}>User</Link>{" "}
                 <Link to={"/user/orders"}>Orders</Link>
             </p>
             <RouterProvider segs={children} />

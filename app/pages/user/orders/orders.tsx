@@ -17,12 +17,14 @@ export function Orders() {
     }, []);
     return (
         <div>
-            <h3>Orders</h3>
-            <h4>tick: {count}</h4>
             <p>
-                <Link to={"/user/orders/1?kitten=here"}>Order 1</Link>
+                <strong>Orders</strong>
             </p>
             <p>
+                <b>tick: {count}</b>
+            </p>
+            <p>
+                <Link to={"/user/orders/1?kitten=here"}>Order 1</Link>{" "}
                 <Link to={"/user/orders/2"}>Order 2</Link>
             </p>
             <RouterProvider segs={children} />

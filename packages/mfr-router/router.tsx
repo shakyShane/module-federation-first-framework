@@ -345,9 +345,25 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
 
     return (
         <RouterContext.Provider value={api}>
-            {state.context.component
-                ? React.createElement(state.context.component)
-                : null}{" "}
+            {state.context.component && (
+                <div style={{ padding: "20px", border: "1px solid red" }}>
+                    {React.createElement(state.context.component)}
+                </div>
+            )}
+            {state.value === "resolving" && (
+                <span
+                    style={{
+                        fontSize: "20px",
+                        position: "absolute",
+                        top: "5px",
+                        right: "5px",
+                        background: "white",
+                        padding: "5px",
+                    }}
+                >
+                    resolving route...
+                </span>
+            )}
             {props.children}
         </RouterContext.Provider>
     );
