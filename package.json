@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npm run lint && tsc --noEmit",
-    "dev": "webpack serve --history-api-fallback --hot",
+    "dev": "webpack serve --history-api-fallback",
     "build": "npm run clean && webpack --mode=production",
     "prettier": "prettier 'packages/**/*.{ts,tsx}' 'app/**/*.{ts,tsx}' 'webpack.config.js'",
     "lint": "npm run prettier -- -c",
@@ -27,11 +27,14 @@
     "webpack-dev-server": "3.11.0"
   },
   "dependencies": {
+    "@babel/core": "7.12.9",
     "@xstate/inspect": "^0.2.0",
     "@xstate/react": "^1.0.3",
     "debug": "^4.3.1",
+    "es-module-lexer": "0.3.26",
     "glob": "7.1.6",
     "history": "^5.0.0",
+    "loader-utils": "2.0.0",
     "mfr-router": "file:./packages/mfr-router",
     "path-to-regexp": "6.2.0",
     "preact": "^10.5.7",

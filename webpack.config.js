@@ -36,11 +36,24 @@ const moduleRules = {
     rules: [
         {
             test: /\.tsx?$/,
-            loader: "esbuild-loader",
-            options: {
-                loader: "tsx", // Or 'ts' if you don't need tsx
-                target: "es2017",
-            },
+            use: [
+                {
+                    loader: require.resolve(
+                        "./packages/webpack/ImportPlugin.js"
+                    ),
+                    options: {
+                        sourceMaps: true,
+                        cwd: __dirname,
+                    },
+                },
+                {
+                    loader: "esbuild-loader",
+                    options: {
+                        loader: "tsx", // Or 'ts' if you don't need tsx
+                        target: "es2017",
+                    },
+                },
+            ],
         },
     ],
 };
