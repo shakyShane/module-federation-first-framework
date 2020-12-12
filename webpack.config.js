@@ -13,7 +13,7 @@ const optimization = (mode = "production") => {
         minimize: mode === "production",
         minimizer: [
             // new ESBuildMinifyPlugin({ target: "es2015" }),
-            mode === "production" && new TerserPlugin(),
+            // mode === "production" && new TerserPlugin(),
         ].filter(Boolean),
     };
 };
@@ -37,15 +37,15 @@ const moduleRules = {
         {
             test: /\.tsx?$/,
             use: [
-                {
-                    loader: require.resolve(
-                        "./packages/webpack/ImportPlugin.js"
-                    ),
-                    options: {
-                        sourceMaps: true,
-                        cwd: __dirname,
-                    },
-                },
+                // {
+                //     loader: require.resolve(
+                //         "./packages/webpack/ImportPlugin.js"
+                //     ),
+                //     options: {
+                //         sourceMaps: true,
+                //         cwd: __dirname,
+                //     },
+                // },
                 {
                     loader: "esbuild-loader",
                     options: {
@@ -71,11 +71,11 @@ const sharedNoImport = shared.reduce((acc, item) => {
  * @param {{page: T, slug: *}[]} slugs
  */
 function main(slugs, mode) {
-    const remotes = slugs.reduce((acc, item) => {
-        acc[item.slug] = item.slug + "@" + item.slug + ".js";
-        return acc;
-    }, {});
-    console.log(remotes);
+    // const remotes = slugs.reduce((acc, item) => {
+    //     acc[item.slug] = item.slug + "@" + item.slug + ".js";
+    //     return acc;
+    // }, {});
+    // console.log(remotes);
 
     /**
      * @type import("webpack").Configuration
@@ -171,7 +171,6 @@ function perPage(pages, slugs, mode) {
             ...slugs.map(
                 ({ slug, page }) =>
                     new ModuleFederationPlugin({
-                        library: { type: "var", name: slug },
                         name: slug,
                         // List of remotes with URLs
                         exposes: {
