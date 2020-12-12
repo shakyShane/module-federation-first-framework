@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, RouterProvider, useRouteData } from "mfr-router";
 
 // todo: make these relative also
-const children = [{ key: "user_orders_$id", as: ":id" }];
+const children = [{ key: "user/orders/$id", as: ":id" }];
 
 export function Orders() {
     const d = useRouteData();

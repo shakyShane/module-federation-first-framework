@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, RouterProvider } from "mfr-router";
 
-const children = [{ key: "user_orders_orders", as: "orders" }];
+const children = [{ key: "user/orders", as: "orders" }];
 
 export function User() {
     return (

@@ -168,19 +168,20 @@ function perPage(pages, slugs, mode) {
         module: moduleRules,
         plugins: [
             new ESBuildPlugin(),
-            ...slugs.map(
-                ({ slug, page }) =>
-                    new ModuleFederationPlugin({
-                        name: slug,
-                        // List of remotes with URLs
-                        exposes: {
-                            ".": page,
-                        },
+            ...slugs.map(({ slug, page }) => {
+                const localName = page.replace("./app/pages/", "");
+                return new ModuleFederationPlugin({
+                    filename: `${localName}.js`,
+                    name: slug,
+                    // List of remotes with URLs
+                    exposes: {
+                        ".": page,
+                    },
 
-                        // list of shared modules with optional options
-                        shared: sharedNoImport,
-                    })
-            ),
+                    // list of shared modules with optional options
+                    shared: sharedNoImport,
+                });
+            }),
         ],
     });
     return configs;

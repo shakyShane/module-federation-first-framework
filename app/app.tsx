@@ -8,7 +8,7 @@ if (process.env.NODE_ENV === "development") {
 
 const children = [
     { key: "index", as: "/" },
-    { key: "user_user", as: "user" },
+    { key: "user", as: "user" },
 ];
 
 export function App() {

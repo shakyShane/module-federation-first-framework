@@ -27,8 +27,6 @@ export const pageLoader: Resolver = async function pageLoader({
         });
     }
 
-    const prefix = "app_pages_";
-
     if (!matchingSeg) {
         segs.forEach((seg, i) => {
             if (matchingSeg) return;
@@ -59,11 +57,20 @@ export const pageLoader: Resolver = async function pageLoader({
             params: {},
         };
     }
-    const next = prefix + matchingSeg.key;
+    let nextUrl = "" + matchingSeg.key;
+    if (!nextUrl.endsWith("index")) {
+        const segs = nextUrl.split("/");
+        const lastSeg = segs[segs.length - 1];
+        if (lastSeg[0] !== "$") {
+            nextUrl += "/index";
+        }
+    }
+    let slugPrefix = "app_pages_";
+    let nextSlug = slugPrefix + nextUrl.replace(/\//g, "_");
     const o = await loadFromRemote({
         remote: {
-            url: `/pages/${next}.js`,
-            name: next,
+            url: `/pages/${nextUrl}.js`,
+            name: nextSlug,
         },
     });
     return {
