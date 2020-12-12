@@ -23,6 +23,4 @@ function init(env: ProcessEnv) {
     // });
 }
 
-if (!require.main) {
-    init(process.env);
-}
+init(process.env);

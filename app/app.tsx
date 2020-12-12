@@ -15,8 +15,8 @@ export function App() {
     return (
         <div style={{ position: "relative" }}>
             <header style={{ padding: "20px", background: "orange" }}>
-                <strong>MFR Router</strong>{" "}
-                <small>Module Federation Ready Router</small>
+                <strong>MFR Router is here</strong>{" "}
+                <small>Module Federation</small>
             </header>
             <RouterProvider segs={children} />
             <footer style={{ padding: "20px", background: "#a4a4d8" }}>
