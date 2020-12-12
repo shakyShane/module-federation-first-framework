@@ -9,7 +9,7 @@
     "build": "npm run clean && webpack --mode=production",
     "build:server": "webpack --config webpack.server.config.js",
     "watch": "npm run build:server -- --watch",
-    "serve": "nodemon dist-server",
+    "serve": "DEBUG=mff:* nodemon dist-server",
     "prettier": "prettier 'packages/**/*.{ts,tsx}' 'app/**/*.{ts,tsx}' 'webpack.config.js'",
     "lint": "npm run prettier -- -c",
     "lint:fix": "npm run prettier -- --write",
