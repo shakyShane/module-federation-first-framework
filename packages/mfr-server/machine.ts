@@ -2,6 +2,7 @@ import { assign, forwardTo, Machine, Sender, spawn } from "xstate";
 import webpack from "webpack";
 import debugPkg from "debug";
 import { appWebpack } from "./app-webpack";
+import { createWebpackMachine } from "./compiler.machine";
 const debug = debugPkg("mff:machine");
 
 type Schema = {
@@ -11,13 +12,15 @@ type Schema = {
                 waitingForApp: Record<string, any>;
                 watching: Record<string, any>;
                 creatingCompiler: Record<string, any>;
+                done: Record<string, any>;
             };
         };
         appWatcher: {
             states: {
                 startingWatch: Record<string, any>;
+                watching: Record<string, any>;
                 stoppingApp: Record<string, any>;
-                stopped: Record<string, any>;
+                done: Record<string, any>;
             };
         };
     };
@@ -30,12 +33,12 @@ type Context = {
 // prettier-ignore
 type Events =
     | { type: "COMPILATION_ERROR"; error: Error }
-    | { type: "COMPILATION_COMPLETE" }
+    | { type: "COMPILATION_COMPLETE"; name: string }
     | { type: "STATS_ERRORS"; errors: any }
     | { type: "STATS_WARNINGS"; warnings: any }
     | { type: "WATCHING" }
     | { type: "STOPPING_APP" }
-    | { type: "APP_STOPPED" }
+    | { type: "CHILD_STOPPED"; name: string }
     | { type: "STOP_ALL" }
     | { type: "INCOMING_REQUEST"; url: string }
 
@@ -56,7 +59,14 @@ export function createMachine() {
                                 COMPILATION_COMPLETE: {
                                     target: "watching",
                                     actions: "logAppReady",
+                                    cond: "isAppMsg",
                                 },
+                                CHILD_STOPPED: [
+                                    {
+                                        target: "done",
+                                        cond: "isAppMsg",
+                                    },
+                                ],
                             },
                         },
                         watching: {
@@ -67,133 +77,83 @@ export function createMachine() {
                                 },
                                 INCOMING_REQUEST: {
                                     target: "creatingCompiler",
+                                    actions: "spawnCompiler",
                                 },
+                                CHILD_STOPPED: [
+                                    {
+                                        target: "done",
+                                        cond: "isAppMsg",
+                                    },
+                                ],
                             },
                         },
-                        creatingCompiler: {
-                            entry: ["spawnCompiler"],
+                        done: {
+                            type: "final",
                         },
+                        creatingCompiler: {},
                     },
                 },
                 appWatcher: {
                     initial: "startingWatch",
                     states: {
                         startingWatch: {
+                            entry: ["spawnAppCompiler"],
                             on: {
-                                COMPILATION_ERROR: {
-                                    actions: "logWatchingError",
-                                },
-                                STATS_ERRORS: { actions: "logStatsErrors" },
-                                STATS_WARNINGS: { actions: "logStatsWarnings" },
-                                STOPPING_APP: "stoppingApp",
-                                STOP_ALL: {
-                                    actions: forwardTo("spawnCompileApp"),
+                                COMPILATION_COMPLETE: {
+                                    target: "watching",
+                                    actions: "logAppReady",
+                                    cond: "isAppMsg",
                                 },
                             },
-                            invoke: {
-                                id: "spawnCompileApp",
-                                src: "spawnCompileApp",
+                        },
+                        watching: {
+                            on: {
+                                STOP_ALL: {
+                                    target: "stoppingApp",
+                                    actions: forwardTo("app"),
+                                },
                             },
                         },
                         stoppingApp: {
-                            on: { APP_STOPPED: "stopped" },
+                            on: {
+                                CHILD_STOPPED: [
+                                    {
+                                        target: "done",
+                                        cond: "isAppMsg",
+                                    },
+                                ],
+                            },
                         },
-                        stopped: { type: "final" },
+                        done: { type: "final" },
                     },
                 },
             },
         },
         {
+            guards: {
+                isAppMsg: (ctx, evt) => evt.name === "app",
+            },
             actions: {
-                spawnCompiler: assign({
-                    compilers: (ctx, evt) => {
-                        return ctx.compilers;
-                        // if (evt.type !== "INCOMING_REQUEST") return;
-                        // if (evt.url === "/") {
-                        //     return {
-                        //         ...ctx.compilers,
-                        //         ['/']: spawn()
-                        //     }
-                        // }
+                logWaitingForReq: (ctx, evt) => {
+                    debug("waiting for incoming requests...");
+                },
+                logAppReady: (ctx, evt) => {
+                    debug("app ready");
+                },
+                spawnAppCompiler: assign({
+                    compilers: (ctx) => {
+                        return {
+                            ...ctx.compilers,
+                            ["app"]: spawn(createWebpackMachine("app"), "app"),
+                        };
                     },
                 }),
-                logStatsErrors: (ctx, evt) => {
-                    forEvent("STATS_ERRORS", evt, (e) => {
-                        debug("[error] %O", e.errors);
-                    });
-                },
-                logStatsWarnings: (ctx, evt) => {
-                    forEvent("STATS_WARNINGS", evt, (e) => {
-                        debug("[warnings] %O", e.warnings);
-                    });
-                },
-                logAppReady: (ctx) =>
-                    debug("app compiled - watching for changes"),
-                logAppCompilationComplete: (ctx) => debug("app compiled"),
-                logAppCompilationError: (ctx, evt) => {},
-                logWatchingError: (ctx, evt) => {
-                    forEvent("COMPILATION_ERROR", evt, (e) => {
-                        debug("[error] app compilation failed %O", e.error);
-                    });
-                },
-                logWaitingForReq: (ctx) =>
-                    debug(
-                        "waiting for file changes or for a request to come in"
-                    ),
-            },
-            services: {
-                // https://webpack.js.org/api/node/
-                spawnCompileApp: (ctx, evt) => (cb: Sender<Events>, recv) => {
-                    const config = appWebpack({});
-                    const compiler = webpack(config);
-
-                    const watching = compiler.watch(
-                        {
-                            // Example [watchOptions](/configuration/watch/#watchoptions)
-                            aggregateTimeout: 300,
-                            poll: undefined,
-                        },
-                        (err, stats) => {
-                            if (err) {
-                                cb({ type: "COMPILATION_ERROR", error: err });
-                                if ((err as any).details) {
-                                    console.error((err as any).details);
-                                }
-                                return;
-                            }
-                            if (!stats) {
-                                // I don't think this is possible, but here for Typescript
-                                return;
-                            }
-                            const info = stats.toJson();
-
-                            if (stats.hasErrors()) {
-                                cb({
-                                    type: "STATS_ERRORS",
-                                    errors: info.errors,
-                                });
-                            }
-
-                            if (stats.hasWarnings()) {
-                                cb({
-                                    type: "STATS_WARNINGS",
-                                    warnings: info.warnings,
-                                });
-                            }
-
-                            cb("COMPILATION_COMPLETE");
-                        }
-                    );
-
-                    recv((evt) => {
-                        const e = evt as Events;
-                        if (e.type === "STOP_ALL") {
-                            watching.close(() => {
-                                cb({ type: "APP_STOPPED" });
-                            });
-                        }
-                    });
-                },
+                spawnCompiler: assign({
+                    compilers: (ctx, evt) => {
+                        console.log(evt);
+                        return ctx.compilers;
+                    },
+                }),
             },
         }
     );

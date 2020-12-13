@@ -17,6 +17,11 @@ function init(env: ProcessEnv) {
         })
         .start();
 
+    setTimeout(() => {
+        console.log("sending request");
+        counterService.send({ type: "INCOMING_REQUEST", url: "/" });
+    }, 5000);
+
     // const app = express();
     // app.listen(8080, (e, other) => {
     //     console.log("listening on http://localhost:8080");
