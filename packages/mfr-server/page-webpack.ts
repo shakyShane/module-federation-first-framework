@@ -1,45 +1,33 @@
+import { AppWebpackParams, createOutput, shared } from "./app-webpack";
 import webpack from "webpack";
-import path from "path";
-import { ESBuildPlugin } from "esbuild-loader";
 
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-const TerserPlugin = require("terser-webpack-plugin");
-const { sync } = require("glob");
+const path = require("path");
+const { ESBuildPlugin } = require("esbuild-loader");
+const { ModuleFederationPlugin } = require("webpack").container;
 
-export interface AppWebpackParams {
-    slugs?: string[];
-    mode?: "production" | "development";
-    cwd?: string;
-}
+const sharedNoImport = shared.reduce((acc, item) => {
+    acc[item] = { import: false };
+    return acc;
+}, {});
 
-export const createOutput = (cwd) => path.resolve(cwd, "dist");
-export const shared = [
-    "react",
-    "react-dom",
-    "xstate",
-    "@xstate/react",
-    "mfr-router",
-];
-export function appWebpack(params: AppWebpackParams): webpack.Configuration {
+/**
+ */
+export function pageWebpack(
+    page: string,
+    params: AppWebpackParams
+): webpack.Configuration {
     const { cwd = process.cwd(), mode = "development" } = params;
-
-    // const remotes = slugs.reduce((acc, item) => {
-    //     acc[item.slug] = item.slug + "@" + item.slug + ".js";
-    //     return acc;
-    // }, {});
-    // console.log(remotes);
-    const output: webpack.Configuration = {
-        name: "app",
+    const localName = page.replace("./app/pages/", "");
+    const slug = page.slice(2).replace(/[./]/g, "_");
+    return {
+        name: "pages",
         mode,
-        devtool: "source-map",
-        entry: {
-            main: "./app/index.tsx",
-        },
+        devtool: "inline-source-map",
+        entry: {},
         output: {
             filename: "[name].js",
-            path: createOutput(cwd),
-            publicPath: "/",
-            uniqueName: "module-federation-entry",
+            path: path.join(createOutput(cwd), "pages"),
+            uniqueName: "app pages",
         },
         stats: {
             chunks: false,
@@ -80,26 +68,19 @@ export function appWebpack(params: AppWebpackParams): webpack.Configuration {
                 },
             ],
         },
-        // devServer: {
-        //     contentBase: path.join(cwd, "dist"),
-        //     compress: true,
-        //     port: 9000,
-        // },
         plugins: [
             new ESBuildPlugin(),
-            new webpack.container.ModuleFederationPlugin({
-                name: "app",
+            new ModuleFederationPlugin({
+                filename: `${localName}.js`,
+                name: slug,
                 // List of remotes with URLs
-                // remotes: remotes,
+                exposes: {
+                    ".": page,
+                },
 
-                // list of shared modules from shell
-                shared: shared,
-            }),
-            new HtmlWebpackPlugin({
-                template: "html/index.html",
+                // list of shared modules with optional options
+                shared: sharedNoImport,
             }),
         ],
     };
-
-    return output;
 }

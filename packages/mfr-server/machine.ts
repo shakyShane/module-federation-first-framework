@@ -1,9 +1,12 @@
-import { assign, forwardTo, Machine, Sender, spawn } from "xstate";
+import { assign, forwardTo, Machine, send, Sender, spawn } from "xstate";
 import webpack from "webpack";
 import debugPkg from "debug";
 import { appWebpack } from "./app-webpack";
 import { createWebpackMachine } from "./compiler.machine";
-const debug = debugPkg("mff:machine");
+import { pageWebpack } from "./page-webpack";
+import { pure } from "xstate/lib/actions";
+const debug = debugPkg("mff:machine:debug");
+const trace = debugPkg("mff:machine:trace");
 
 type Schema = {
     states: {
@@ -33,7 +36,7 @@ type Context = {
 // prettier-ignore
 type Events =
     | { type: "COMPILATION_ERROR"; error: Error }
-    | { type: "COMPILATION_COMPLETE"; name: string }
+    | { type: "COMPILATION_COMPLETE"; name: string; time: number }
     | { type: "STATS_ERRORS"; errors: any }
     | { type: "STATS_WARNINGS"; warnings: any }
     | { type: "WATCHING" }
@@ -58,7 +61,6 @@ export function createMachine() {
                             on: {
                                 COMPILATION_COMPLETE: {
                                     target: "watching",
-                                    actions: "logAppReady",
                                     cond: "isAppMsg",
                                 },
                                 CHILD_STOPPED: [
@@ -75,10 +77,19 @@ export function createMachine() {
                                 COMPILATION_COMPLETE: {
                                     actions: "logAppCompilationComplete",
                                 },
-                                INCOMING_REQUEST: {
-                                    target: "creatingCompiler",
-                                    actions: "spawnCompiler",
-                                },
+                                INCOMING_REQUEST: [
+                                    {
+                                        actions: [
+                                            "spawnCompiler",
+                                            "logCompilers",
+                                        ],
+                                        cond: "compilerIsAbsent",
+                                    },
+                                    {
+                                        actions: "respondReady",
+                                        cond: "compilerPresent",
+                                    },
+                                ],
                                 CHILD_STOPPED: [
                                     {
                                         target: "done",
@@ -87,10 +98,10 @@ export function createMachine() {
                                 ],
                             },
                         },
+                        creatingCompiler: {},
                         done: {
                             type: "final",
                         },
-                        creatingCompiler: {},
                     },
                 },
                 appWatcher: {
@@ -132,6 +143,18 @@ export function createMachine() {
         {
             guards: {
                 isAppMsg: (ctx, evt) => evt.name === "app",
+                compilerIsAbsent: (ctx, evt) => {
+                    return forEvent("INCOMING_REQUEST", evt, (evt) => {
+                        const name = compilerName(evt.url);
+                        return !ctx.compilers[name];
+                    });
+                },
+                compilerPresent: (ctx, evt) => {
+                    return forEvent("INCOMING_REQUEST", evt, (evt) => {
+                        const name = compilerName(evt.url);
+                        return ctx.compilers[name];
+                    });
+                },
             },
             actions: {
                 logWaitingForReq: (ctx, evt) => {
@@ -140,17 +163,62 @@ export function createMachine() {
                 logAppReady: (ctx, evt) => {
                     debug("app ready");
                 },
+                logAppCompilationComplete: (ctx, evt) => {
+                    /** noop currnetly */
+                    // forEvent("COMPILATION_COMPLETE", evt, (evt) => {
+                    //     debug("DONEEEE!!!!! %O", evt.name);
+                    // });
+                },
+                logCompilers: (ctx) => {
+                    debug(
+                        "%O compilers = %O",
+                        Object.keys(ctx.compilers).length,
+                        Object.keys(ctx.compilers)
+                    );
+                },
+                respondReady: pure((ctx, evt) => {
+                    if (evt.type === "INCOMING_REQUEST") {
+                        trace(
+                            "responding as 'ready' as a compiler exists for %O",
+                            evt.url
+                        );
+                        return send(
+                            {
+                                type: "COMPILATION_COMPLETE",
+                                name: compilerName(evt.url),
+                            },
+                            { delay: 10 }
+                        );
+                    }
+                    return undefined;
+                }),
                 spawnAppCompiler: assign({
                     compilers: (ctx) => {
                         return {
                             ...ctx.compilers,
-                            ["app"]: spawn(createWebpackMachine("app"), "app"),
+                            ["app"]: spawn(
+                                createWebpackMachine("app", appWebpack({})),
+                                "app"
+                            ),
                         };
                     },
                 }),
                 spawnCompiler: assign({
                     compilers: (ctx, evt) => {
-                        console.log(evt);
+                        if (evt.type === "INCOMING_REQUEST") {
+                            trace("request to start compiler for %O", evt);
+                            const name = compilerName(evt.url);
+                            return {
+                                ...ctx.compilers,
+                                [name]: spawn(
+                                    createWebpackMachine(
+                                        name,
+                                        pageWebpack(evt.url, {})
+                                    ),
+                                    name
+                                ),
+                            };
+                        }
                         return ctx.compilers;
                     },
                 }),
@@ -159,12 +227,16 @@ export function createMachine() {
     );
 }
 
+export function compilerName(pathname: string): string {
+    return `compiler:${pathname}`;
+}
+
 function forEvent<S extends Events["type"]>(
     s: S,
     n: Events,
-    fn: (e: Evt<S>) => void
+    fn: (e: Evt<S>) => any
 ): boolean {
-    if (n.type === s) fn(n as Evt<S>);
+    if (n.type === s) return fn(n as Evt<S>);
     return false;
 }
 

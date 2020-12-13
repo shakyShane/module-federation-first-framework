@@ -16,12 +16,13 @@ type Schema = {
 
 type Context = {
     name: string;
+    config: webpack.Configuration;
 };
 
 // prettier-ignore
 type Events =
     | { type: "COMPILATION_ERROR"; error: Error }
-    | { type: "COMPILATION_COMPLETE"; name: string }
+    | { type: "COMPILATION_COMPLETE"; name: string; time: number }
     | { type: "STATS_ERRORS"; errors: any }
     | { type: "STATS_WARNINGS"; warnings: any }
     | { type: "WATCHING" }
@@ -29,12 +30,16 @@ type Events =
     | { type: "STOPPED" }
     | { type: "STOP_ALL" };
 
-export function createWebpackMachine(name: string) {
+export function createWebpackMachine(
+    name: string,
+    config: webpack.Configuration
+) {
     return Machine<Context, Schema, Events>(
         {
             id: "webpack",
             initial: "starting",
             context: {
+                config,
                 name: name,
             },
             invoke: {
@@ -57,6 +62,7 @@ export function createWebpackMachine(name: string) {
                                 sendParent((ctx, evt) => {
                                     return evt;
                                 }),
+                                "logCompilationComplete",
                                 "logReady",
                             ],
                         },
@@ -102,12 +108,16 @@ export function createWebpackMachine(name: string) {
                         debug("[%s][warnings] %O", ctx.name, e.warnings);
                     });
                 },
-                logReady: (ctx) =>
-                    debug("[%s] compiled - watching for changes", ctx.name),
+                logReady: (ctx, evt) => {
+                    debug("[%s] watching for changes", ctx.name);
+                },
                 logStoppinglogStopping: (ctx) =>
                     debug("[%s] stopping...", ctx.name),
-                logCompilationComplete: (ctx) =>
-                    debug("[%s] compiled", ctx.name),
+                logCompilationComplete: (ctx, evt) => {
+                    forEvent("COMPILATION_COMPLETE", evt, (evt) => {
+                        debug("[%s] compiled in %Oms", ctx.name, evt.time);
+                    });
+                },
                 logCompilationError: (ctx, evt) => {
                     forEvent("COMPILATION_ERROR", evt, (e) => {
                         debug(
@@ -122,8 +132,7 @@ export function createWebpackMachine(name: string) {
             services: {
                 // https://webpack.js.org/api/node/
                 spawnCompiler: (ctx, evt) => (cb: Sender<Events>, recv) => {
-                    const config = appWebpack({});
-                    const compiler = webpack(config);
+                    const compiler = webpack(ctx.config);
 
                     const watching = compiler.watch(
                         {
@@ -162,6 +171,7 @@ export function createWebpackMachine(name: string) {
                             cb({
                                 type: "COMPILATION_COMPLETE",
                                 name: ctx.name,
+                                time: info.time,
                             });
                         }
                     );

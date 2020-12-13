@@ -26,6 +26,9 @@ export function Orders() {
             <p>
                 <Link to={"/user/orders/1?kitten=here"}>Order 1</Link>{" "}
                 <Link to={"/user/orders/2"}>Order 2</Link>
+                <Link to={"/user/orders/3"}>Order 3</Link>
+                <Link to={"/user/orders/4"}>Order 4</Link>
+                <Link to={"/user/orders/5"}>Order 5</Link>
             </p>
             <RouterProvider segs={children} />
         </div>
