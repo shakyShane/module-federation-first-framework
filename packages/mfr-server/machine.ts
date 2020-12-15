@@ -1,5 +1,4 @@
 import { assign, forwardTo, Machine, send, Sender, spawn } from "xstate";
-import webpack from "webpack";
 import debugPkg from "debug";
 import { appWebpack } from "./app-webpack";
 import { createWebpackMachine } from "./compiler.machine";

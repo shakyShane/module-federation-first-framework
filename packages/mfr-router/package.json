@@ -13,7 +13,7 @@
     "@xstate/inspect": "^0.2.0",
     "@xstate/react": "^1.0.3",
     "debug": "^4.3.1",
-    "history": "^5.0.0",
+    "history": "4.10.1",
     "path-to-regexp": "6.2.0",
     "preact": "^10.5.7",
     "react": "^17.0.1",

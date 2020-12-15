@@ -1,3 +1,4 @@
+const { join } = require("path");
 const { ESBuildPlugin } = require("esbuild-loader");
 const nodeExternals = require("webpack-node-externals");
 /**
@@ -11,12 +12,17 @@ module.exports = () => {
             path: __dirname + "/dist-server",
         },
         target: "node",
-        externals: [nodeExternals()],
+        externals: [nodeExternals({ allowlist: ["mfr-router"] })],
         optimization: {
             minimize: false,
         },
         resolve: {
             extensions: [".ts", ".tsx", ".js", ".json"],
+            alias: {
+                "mfr-router": join(__dirname, "packages", "mfr-router"),
+                react: "preact/compat",
+                "react-dom": "preact/compat",
+            },
         },
         module: {
             rules: [

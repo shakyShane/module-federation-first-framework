@@ -1,7 +1,6 @@
-import { assign, forwardTo, Machine, Sender, sendParent, spawn } from "xstate";
+import { forwardTo, Machine, Sender, sendParent } from "xstate";
 import webpack from "webpack";
 import debugPkg from "debug";
-import { appWebpack } from "./app-webpack";
 const debug = debugPkg("mff:webpack:machine:debug");
 const trace = debugPkg("mff:webpack:machine:trace");
 

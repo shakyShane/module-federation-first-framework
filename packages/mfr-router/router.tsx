@@ -3,11 +3,12 @@ import { assign, DoneInvokeEvent, Interpreter, Machine, send } from "xstate";
 import { v4 as uuidv4 } from "uuid";
 import { useMachine, useService } from "@xstate/react";
 import { createContext, PropsWithChildren, useContext, useMemo } from "react";
-import { BrowserHistory, createBrowserHistory, History } from "history";
+import { createBrowserHistory, History } from "history";
 import debugpkg from "debug";
 import { pure } from "xstate/lib/actions";
 import { pageLoader } from "./page-loader";
 import matchPath from "./match-path";
+import useConstant from "@xstate/react/lib/useConstant";
 
 const debug = debugpkg("router");
 const trace = debugpkg("router:trace");
@@ -343,6 +344,10 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
         };
     }, [send, service, currentDepth, baseParents]);
 
+    console.log("-->", state.context.component);
+    console.log("-->", state.context);
+    console.log("-->", state.value);
+
     return (
         <RouterContext.Provider value={api}>
             {state.context.component && (
@@ -374,7 +379,6 @@ type RouterProps = {
     dataLoader: () => Promise<any>;
 };
 
-const bh = createBrowserHistory();
 const BaseRouterContext = createContext<{
     history: BrowserHistory;
     send: Interpreter<any, any, BaseEvt>["send"];
@@ -382,7 +386,7 @@ const BaseRouterContext = createContext<{
 }>({
     send: null as any,
     service: null,
-    history: bh,
+    history: null,
 });
 
 type BaseContext = {
@@ -505,18 +509,37 @@ const baseMachine = Machine<BaseContext, Record<string, any>, BaseEvt>(
     }
 );
 
-export function BaseRouter(props: PropsWithChildren<any>) {
+const noop = () => {
+    /* noop */
+};
+
+export function BaseRouter(
+    props: PropsWithChildren<{ location: History["location"] }>
+) {
     const [state, send, service] = useMachine(baseMachine, { devTools: true });
+    const bh = useConstant(() => {
+        if (typeof window === "undefined") {
+            return { location: props.location, listen: noop } as any;
+        } else {
+            return createBrowserHistory();
+        }
+    });
     useEffect(() => {
         const unlisten = bh.listen(({ location, action }) => {
             send({ type: "HISTORY_EVT", location, action });
         });
         return () => {
-            unlisten();
+            if (typeof unlisten === "function") {
+                unlisten();
+            }
         };
     }, [send]);
     const api = useMemo(() => {
-        return { history: bh, send, service };
+        if (typeof window === "undefined") {
+            return { history: bh, send, service };
+        } else {
+            return { history: bh, send, service };
+        }
     }, [send, service]);
     return (
         <BaseRouterContext.Provider value={api}>

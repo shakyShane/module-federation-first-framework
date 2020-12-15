@@ -2,8 +2,10 @@ import * as React from "react";
 import { RouterProvider } from "mfr-router";
 
 if (process.env.NODE_ENV === "development") {
-    const { inspect } = require("@xstate/inspect");
-    inspect({ iframe: false });
+    if (typeof window !== "undefined") {
+        const { inspect } = require("@xstate/inspect");
+        inspect({ iframe: false });
+    }
 }
 
 const children = [
