@@ -380,13 +380,13 @@ type RouterProps = {
 };
 
 const BaseRouterContext = createContext<{
-    history: BrowserHistory;
+    history: History;
     send: Interpreter<any, any, BaseEvt>["send"];
     service: any;
 }>({
     send: null as any,
     service: null,
-    history: null,
+    history: null as any,
 });
 
 type BaseContext = {
