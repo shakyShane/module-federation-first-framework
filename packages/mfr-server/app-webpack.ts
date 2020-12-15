@@ -95,9 +95,9 @@ export function appWebpack(params: AppWebpackParams): webpack.Configuration {
                 // list of shared modules from shell
                 shared: shared,
             }),
-            new HtmlWebpackPlugin({
-                template: "html/index.html",
-            }),
+            // new HtmlWebpackPlugin({
+            //     template: "html/index.html",
+            // }),
         ],
     };
 

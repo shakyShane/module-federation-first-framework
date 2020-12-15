@@ -5,10 +5,12 @@ export function Home() {
     return (
         <div>
             <h1>Home</h1>
-            <h2>Welcome everyone to the rock show - Module Federation demo</h2>
+            <h2>Welcome everyone. Module Federation demo</h2>
             <p>
                 <Link to={"/user"}>User</Link>
             </p>
+            <h1>Home</h1>
+            <h2>Welcome everyone. Module Federation demo</h2>
         </div>
     );
 }

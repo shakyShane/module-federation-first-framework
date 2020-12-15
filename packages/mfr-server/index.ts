@@ -1,4 +1,5 @@
 import express from "express";
+import fallback from "express-history-api-fallback";
 import ProcessEnv = NodeJS.ProcessEnv;
 import { compilerName, createMachine } from "./machine";
 import { interpret } from "xstate";
@@ -21,10 +22,23 @@ function init(env: ProcessEnv) {
 
     const app = express();
     function index(req, res, next) {
-        console.log("handle home");
-        res.send(
-            "<!doctype html>\n<html lang='en'>\n<head>\n    <meta charset='UTF-8'>\n    <meta name='viewport' content='width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0'>\n    <meta http-equiv='X-UA-Compatible' content='ie=edge'>\n    <title>Document</title></head>\n<body><h1>Hello world</h1></body>\n</html>"
-        );
+        if (req.method === "GET" || req.method === "HEAD") {
+            trace("[home handler] %O", req.url);
+            res.setHeader("content-type", "text/html");
+            res.send(
+                `<!doctype html>
+                    <html lang='en'>
+                    <head>
+                        <meta charset='UTF-8'>
+                        <meta name='viewport' content='width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0'>
+                        <meta http-equiv='X-UA-Compatible' content='ie=edge'>
+                        <title>Document</title></head>
+                        <body><main></main><script src="/main.js"></script></body>
+                    </html>`
+            );
+        } else {
+            next();
+        }
     }
     function page(req, res, next) {
         trace("[page handler] %O", req.url);
@@ -49,6 +63,7 @@ function init(env: ProcessEnv) {
         }
     }
     app.use("/pages", page);
+    app.use("/", express.static(join(CWD, "dist")));
     app.use("/", index);
     // app.all("*", (req, res, next) => {
     //     console.log("unhandled", req.url);

@@ -6,9 +6,7 @@ const children = [{ key: "user/orders", as: "orders" }];
 export function User() {
     return (
         <div>
-            <p>
-                <strong>User</strong>
-            </p>
+            <h1>User</h1>
             <p>
                 <Link to={"/"}>Home</Link>
             </p>
