@@ -6,7 +6,7 @@ const nodeExternals = require("webpack-node-externals");
  */
 module.exports = () => {
     return {
-        entry: { index: "./packages/mfr-server/index.ts" },
+        entry: { index: "./packages/mfr-server/index.tsx" },
         output: {
             filename: "[name].js",
             path: __dirname + "/dist-server",

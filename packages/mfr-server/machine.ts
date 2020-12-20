@@ -1,11 +1,13 @@
 import { assign, forwardTo, Machine, send, Sender, spawn } from "xstate";
 import debugPkg from "debug";
-import { appWebpack } from "./app-webpack";
 import { createWebpackMachine } from "./compiler.machine";
 import { pageWebpack } from "./page-webpack";
 import { pure } from "xstate/lib/actions";
+import { browserEntryWebpack } from "./browser-entry-webpack";
 const debug = debugPkg("mff:machine:debug");
 const trace = debugPkg("mff:machine:trace");
+
+export const BROWSER_ENTRY_NAME = "browser-entry";
 
 type Schema = {
     states: {
@@ -120,7 +122,7 @@ export function createMachine() {
                             on: {
                                 STOP_ALL: {
                                     target: "stoppingApp",
-                                    actions: forwardTo("app"),
+                                    actions: forwardTo(BROWSER_ENTRY_NAME),
                                 },
                             },
                         },
@@ -141,7 +143,9 @@ export function createMachine() {
         },
         {
             guards: {
-                isAppMsg: (ctx, evt) => evt.name === "app",
+                isAppMsg: (ctx, evt) => {
+                    return (evt as any).name === BROWSER_ENTRY_NAME;
+                },
                 compilerIsAbsent: (ctx, evt) => {
                     return forEvent("INCOMING_REQUEST", evt, (evt) => {
                         const name = compilerName(evt.url);
@@ -195,9 +199,12 @@ export function createMachine() {
                     compilers: (ctx) => {
                         return {
                             ...ctx.compilers,
-                            ["app"]: spawn(
-                                createWebpackMachine("app", appWebpack({})),
-                                "app"
+                            [BROWSER_ENTRY_NAME]: spawn(
+                                createWebpackMachine(
+                                    BROWSER_ENTRY_NAME,
+                                    browserEntryWebpack({})
+                                ),
+                                BROWSER_ENTRY_NAME
                             ),
                         };
                     },

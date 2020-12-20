@@ -1,4 +1,8 @@
-import { AppWebpackParams, createOutput, shared } from "./app-webpack";
+import {
+    AppWebpackParams,
+    createOutput,
+    shared,
+} from "./browser-entry-webpack";
 import webpack from "webpack";
 
 const path = require("path");

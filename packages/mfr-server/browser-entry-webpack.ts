@@ -1,6 +1,7 @@
 import webpack from "webpack";
 import path from "path";
 import { ESBuildPlugin } from "esbuild-loader";
+import { BROWSER_ENTRY_NAME } from "./machine";
 
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
@@ -20,7 +21,9 @@ export const shared = [
     "@xstate/react",
     "mfr-router",
 ];
-export function appWebpack(params: AppWebpackParams): webpack.Configuration {
+export function browserEntryWebpack(
+    params: AppWebpackParams
+): webpack.Configuration {
     const { cwd = process.cwd(), mode = "development" } = params;
 
     // const remotes = slugs.reduce((acc, item) => {
@@ -29,7 +32,7 @@ export function appWebpack(params: AppWebpackParams): webpack.Configuration {
     // }, {});
     // console.log(remotes);
     const output: webpack.Configuration = {
-        name: "app",
+        name: BROWSER_ENTRY_NAME,
         mode,
         devtool: "source-map",
         entry: {

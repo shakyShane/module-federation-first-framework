@@ -344,9 +344,9 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
         };
     }, [send, service, currentDepth, baseParents]);
 
-    console.log("-->", state.context.component);
-    console.log("-->", state.context);
-    console.log("-->", state.value);
+    // console.log("-->", state.context.component);
+    // console.log("-->", state.context);
+    // console.log("-->", state.value);
 
     return (
         <RouterContext.Provider value={api}>

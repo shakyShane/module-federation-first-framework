@@ -8,7 +8,7 @@
 
 // At this point shared modules initialized and remote modules are loaded
 // @ts-ignore
-import("./bootstrap");
+import("./browser");
 
 // It's possible to place more code here to do stuff on page init
 // but it can't use any of the shared modules or remote modules.
