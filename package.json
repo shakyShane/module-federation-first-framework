@@ -51,6 +51,7 @@
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-router": "^5.2.0",
+    "require-from-string": "2.0.2",
     "uuid": "^8.3.1",
     "webpack-node-externals": "2.5.2",
     "xstate": "^4.14.1"

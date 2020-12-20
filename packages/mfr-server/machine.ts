@@ -4,10 +4,12 @@ import { createWebpackMachine } from "./compiler.machine";
 import { pageWebpack } from "./page-webpack";
 import { pure } from "xstate/lib/actions";
 import { browserEntryWebpack } from "./browser-entry-webpack";
+import { serverEntryWebpack } from "./server-entry-webpack";
 const debug = debugPkg("mff:machine:debug");
 const trace = debugPkg("mff:machine:trace");
 
 export const BROWSER_ENTRY_NAME = "browser-entry";
+export const SERVER_ENTRY_NAME = "server-entry";
 
 type Schema = {
     states: {
@@ -32,12 +34,15 @@ type Schema = {
 
 type Context = {
     compilers: Record<string, any>;
+    browserReady: boolean;
+    serverReady: boolean;
+    serverBuffer: Buffer;
 };
 
 // prettier-ignore
 type Events =
     | { type: "COMPILATION_ERROR"; error: Error }
-    | { type: "COMPILATION_COMPLETE"; name: string; time: number }
+    | { type: "COMPILATION_COMPLETE"; name: string; time: number; buffer: Buffer }
     | { type: "STATS_ERRORS"; errors: any }
     | { type: "STATS_WARNINGS"; warnings: any }
     | { type: "WATCHING" }
@@ -53,6 +58,9 @@ export function createMachine() {
             type: "parallel",
             context: {
                 compilers: {},
+                browserReady: false,
+                serverReady: false,
+                serverBuffer: Buffer.from(""),
             },
             states: {
                 compilers: {
@@ -62,7 +70,7 @@ export function createMachine() {
                             on: {
                                 COMPILATION_COMPLETE: {
                                     target: "watching",
-                                    cond: "isAppMsg",
+                                    cond: "oneComplete",
                                 },
                                 CHILD_STOPPED: [
                                     {
@@ -75,9 +83,6 @@ export function createMachine() {
                         watching: {
                             entry: "logWaitingForReq",
                             on: {
-                                COMPILATION_COMPLETE: {
-                                    actions: "logAppCompilationComplete",
-                                },
                                 INCOMING_REQUEST: [
                                     {
                                         actions: [
@@ -111,11 +116,25 @@ export function createMachine() {
                         startingWatch: {
                             entry: ["spawnAppCompiler"],
                             on: {
-                                COMPILATION_COMPLETE: {
-                                    target: "watching",
-                                    actions: "logAppReady",
-                                    cond: "isAppMsg",
-                                },
+                                COMPILATION_COMPLETE: [
+                                    {
+                                        actions: [
+                                            "logReady",
+                                            "markReady",
+                                            "updateSSR",
+                                        ],
+                                        cond: "noneComplete",
+                                    },
+                                    {
+                                        target: "watching",
+                                        actions: [
+                                            "logReady",
+                                            "markReady",
+                                            "updateSSR",
+                                        ],
+                                        cond: "oneComplete",
+                                    },
+                                ],
                             },
                         },
                         watching: {
@@ -124,6 +143,12 @@ export function createMachine() {
                                     target: "stoppingApp",
                                     actions: forwardTo(BROWSER_ENTRY_NAME),
                                 },
+                                COMPILATION_COMPLETE: [
+                                    {
+                                        cond: "isServerMsg",
+                                        actions: "updateSSR",
+                                    },
+                                ],
                             },
                         },
                         stoppingApp: {
@@ -143,8 +168,19 @@ export function createMachine() {
         },
         {
             guards: {
-                isAppMsg: (ctx, evt) => {
+                noneComplete: (ctx) => {
+                    return (
+                        ctx.serverReady === false && ctx.browserReady === false
+                    );
+                },
+                oneComplete: (ctx) => {
+                    return ctx.serverReady || ctx.browserReady;
+                },
+                isBrowserMsg: (ctx, evt) => {
                     return (evt as any).name === BROWSER_ENTRY_NAME;
+                },
+                isServerMsg: (ctx, evt) => {
+                    return (evt as any).name === SERVER_ENTRY_NAME;
                 },
                 compilerIsAbsent: (ctx, evt) => {
                     return forEvent("INCOMING_REQUEST", evt, (evt) => {
@@ -163,9 +199,45 @@ export function createMachine() {
                 logWaitingForReq: (ctx, evt) => {
                     debug("waiting for incoming requests...");
                 },
-                logAppReady: (ctx, evt) => {
-                    debug("app ready");
+                logReady: (ctx, evt) => {
+                    forEvent("COMPILATION_COMPLETE", evt, (evt) => {
+                        debug("%O ready", evt.name);
+                    });
                 },
+                updateSSR: assign({
+                    serverBuffer: (ctx, evt) => {
+                        console.log("evet->", evt);
+                        if (evt.type === "COMPILATION_COMPLETE") {
+                            if (evt.name === SERVER_ENTRY_NAME) {
+                                return evt.buffer;
+                            }
+                        }
+                        return ctx.serverBuffer;
+                    },
+                }),
+                markReady: assign((ctx, evt) => {
+                    if (evt.type !== "COMPILATION_COMPLETE") return ctx;
+                    return {
+                        ...ctx,
+                        serverReady:
+                            evt.name === SERVER_ENTRY_NAME
+                                ? true
+                                : ctx.serverReady,
+                        browserReady:
+                            evt.name === BROWSER_ENTRY_NAME
+                                ? true
+                                : ctx.browserReady,
+                    };
+                }),
+                saveServerBuffer: assign({
+                    serverBuffer: (ctx, evt) => {
+                        if (evt.type === "COMPILATION_COMPLETE") {
+                            return evt.buffer;
+                        }
+                        return ctx.serverBuffer;
+                    },
+                    serverReady: (_ctx) => true,
+                }),
                 logAppCompilationComplete: (ctx, evt) => {
                     /** noop currnetly */
                     // forEvent("COMPILATION_COMPLETE", evt, (evt) => {
@@ -205,6 +277,13 @@ export function createMachine() {
                                     browserEntryWebpack({})
                                 ),
                                 BROWSER_ENTRY_NAME
+                            ),
+                            [SERVER_ENTRY_NAME]: spawn(
+                                createWebpackMachine(
+                                    SERVER_ENTRY_NAME,
+                                    serverEntryWebpack({})
+                                ),
+                                SERVER_ENTRY_NAME
                             ),
                         };
                     },

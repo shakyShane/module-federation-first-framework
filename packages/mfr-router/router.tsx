@@ -248,6 +248,7 @@ const noopResolver = () => Promise.resolve({});
 
 export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
     const { dataLoader = noopDataLoader, resolver = pageLoader, segs } = props;
+    console.log("SSR");
     const baseRouter = useContext(BaseRouterContext);
     if (!baseRouter.send) {
         throw new Error(

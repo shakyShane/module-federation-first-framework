@@ -6,6 +6,7 @@ import debugPkg from "debug";
 import { existsSync } from "fs";
 import { join } from "path";
 import { renderToStaticMarkup } from "react-dom/server";
+import requireFromString from "require-from-string";
 import React from "react";
 const CWD = process.cwd();
 const debug = debugPkg("mff:debug");
@@ -15,9 +16,18 @@ debug(CWD);
 
 function init(env: ProcessEnv) {
     const machine = createMachine();
+    let ssr = Buffer.from("");
     const counterService = interpret(machine)
         .onTransition((state, evt) => {
-            trace("--transition-- %o", state.value, evt.type);
+            trace("--transition-- %o %O", state.value, evt.type);
+            trace("--ready?-- %O", state.matches({ appWatcher: "watching" }));
+            if (state.matches({ appWatcher: "watching" })) {
+                trace(
+                    "--updating ssr with %O bytes--",
+                    state.context.serverBuffer.length
+                );
+                ssr = state.context.serverBuffer;
+            }
         })
         .start();
 
@@ -32,9 +42,23 @@ function init(env: ProcessEnv) {
             return next();
         }
 
-        trace("[ssr handler] %O", req.url);
-        const App = <p>Hello world</p>;
-        const html = renderToStaticMarkup(App);
+        trace(
+            "[ssr handler] %O, {} bytes in buffer",
+            req.url,
+            ssr.toString().length
+        );
+        // const App = (() => {
+        //     try {
+        //         return require("");
+        //     }
+        // })();
+        const mod = requireFromString(
+            ssr.toString(),
+            "/Users/shakyshane/sites/oss/module-federation-first-framework/ssr-dist/main.js"
+        );
+        const component = mod.default(req, res);
+        const html = renderToStaticMarkup(component);
+
         res.setHeader("content-type", "text/html");
         return res.send(
             `<!doctype html>

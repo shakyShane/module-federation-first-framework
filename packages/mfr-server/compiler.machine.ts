@@ -1,6 +1,8 @@
 import { forwardTo, Machine, Sender, sendParent } from "xstate";
 import webpack from "webpack";
 import debugPkg from "debug";
+import { join } from "path";
+import { SERVER_ENTRY_NAME } from "./machine";
 const debug = debugPkg("mff:webpack:machine:debug");
 const trace = debugPkg("mff:webpack:machine:trace");
 
@@ -21,7 +23,7 @@ type Context = {
 // prettier-ignore
 type Events =
     | { type: "COMPILATION_ERROR"; error: Error }
-    | { type: "COMPILATION_COMPLETE"; name: string; time: number }
+    | { type: "COMPILATION_COMPLETE"; name: string; time: number; buffer: Buffer }
     | { type: "STATS_ERRORS"; errors: any }
     | { type: "STATS_WARNINGS"; warnings: any }
     | { type: "WATCHING" }
@@ -77,7 +79,12 @@ export function createWebpackMachine(
                             ],
                         },
                         COMPILATION_COMPLETE: {
-                            actions: "logCompilationComplete",
+                            actions: [
+                                sendParent((ctx, evt) => {
+                                    return evt;
+                                }),
+                                "logCompilationComplete",
+                            ],
                         },
                     },
                 },
@@ -167,10 +174,35 @@ export function createWebpackMachine(
                                 });
                             }
 
+                            // console.log(
+                            //     compiler.outputPath,
+                            //     (compiler.outputFileSystem as any).readFileSync(
+                            //         join(compiler.outputPath, "main.js")
+                            //     )
+                            // );
+
+                            const buffer =
+                                compiler.name === SERVER_ENTRY_NAME
+                                    ? ((compiler.outputFileSystem as any).readFileSync(
+                                          join(compiler.outputPath, "main.js")
+                                      ) as Buffer)
+                                    : Buffer.from("");
+
+                            trace("sending %O bytes", buffer.length);
+
                             cb({
                                 type: "COMPILATION_COMPLETE",
                                 name: ctx.name,
                                 time: info.time,
+                                buffer:
+                                    compiler.name === SERVER_ENTRY_NAME
+                                        ? ((compiler.outputFileSystem as any).readFileSync(
+                                              join(
+                                                  compiler.outputPath,
+                                                  "main.js"
+                                              )
+                                          ) as Buffer)
+                                        : Buffer.from(""),
                             });
                         }
                     );

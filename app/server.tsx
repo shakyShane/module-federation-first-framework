@@ -6,11 +6,12 @@ import { App } from "./app";
 /**
  * SSR entry point
  */
-export default function ssr(pathname: string) {
-    console.log("SSR only %O", pathname);
+export default function ssr(req, res) {
+    console.log("SSR only here please");
     return (
-        <BaseRouter location={createLocation(pathname)}>
+        <BaseRouter location={createLocation(req.url)}>
             <App />
+            <p>Here please Sir</p>
         </BaseRouter>
     );
 }

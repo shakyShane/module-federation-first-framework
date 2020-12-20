@@ -1,11 +1,8 @@
 import webpack from "webpack";
 import path from "path";
 import { ESBuildPlugin } from "esbuild-loader";
-import { BROWSER_ENTRY_NAME } from "./machine";
-
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-const TerserPlugin = require("terser-webpack-plugin");
-const { sync } = require("glob");
+import { SERVER_ENTRY_NAME } from "./machine";
+import nodeExternals from "webpack-node-externals";
 
 export interface AppWebpackParams {
     slugs?: string[];
@@ -13,7 +10,7 @@ export interface AppWebpackParams {
     cwd?: string;
 }
 
-export const createOutput = (cwd) => path.resolve(cwd, "dist");
+export const createOutput = (cwd) => path.join(cwd, "ssr-dist");
 export const shared = [
     "react",
     "react-dom",
@@ -21,7 +18,7 @@ export const shared = [
     "@xstate/react",
     "mfr-router",
 ];
-export function browserEntryWebpack(
+export function serverEntryWebpack(
     params: AppWebpackParams
 ): webpack.Configuration {
     const { cwd = process.cwd(), mode = "development" } = params;
@@ -32,18 +29,25 @@ export function browserEntryWebpack(
     // }, {});
     // console.log(remotes);
     const output: webpack.Configuration = {
-        name: BROWSER_ENTRY_NAME,
-        mode,
+        name: SERVER_ENTRY_NAME,
+        mode: "development",
         devtool: "source-map",
+        target: "node",
         entry: {
-            main: "./app/index.tsx",
+            main: "./app/server.tsx",
         },
         output: {
             filename: "[name].js",
             path: createOutput(cwd),
             publicPath: "/",
-            uniqueName: "module-federation-entry",
+            uniqueName: "module-federation-server-entry",
+            libraryTarget: "commonjs",
         },
+        // externals: ["enhanced-resolve"],
+        externals: [
+            "enhanced-resolve",
+            nodeExternals({ allowlist: ["mfr-router"] }),
+        ],
         stats: {
             chunks: false,
             modules: false,
@@ -53,18 +57,14 @@ export function browserEntryWebpack(
         optimization: {
             chunkIds: "named" as const, // for this example only: readable filenames in production too
             nodeEnv: mode, // for this example only: always production version of react
-            minimize: mode === "production",
-            minimizer: [
-                // new ESBuildMinifyPlugin({ target: "es2015" }),
-                // mode === "production" && new TerserPlugin(),
-            ].filter(Boolean),
+            minimize: false,
         },
         resolve: {
             extensions: [".ts", ".tsx", ".js", ".json"],
             alias: {
                 "mfr-router": path.join(cwd, "packages", "mfr-router"),
-                react: "preact/compat",
-                "react-dom": "preact/compat",
+                // react: "preact/compat",
+                // "react-dom": "preact/compat",
             },
         },
         module: {
@@ -91,12 +91,13 @@ export function browserEntryWebpack(
         plugins: [
             new ESBuildPlugin(),
             new webpack.container.ModuleFederationPlugin({
-                name: BROWSER_ENTRY_NAME,
+                name: SERVER_ENTRY_NAME,
                 // List of remotes with URLs
+                library: { type: "commonjs-module" },
+                filename: "container.js",
                 // remotes: remotes,
-
                 // list of shared modules from shell
-                shared: shared,
+                // shared: shared,
             }),
             // new HtmlWebpackPlugin({
             //     template: "html/index.html",
