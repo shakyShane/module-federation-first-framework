@@ -4,4 +4,5 @@ export {
     Link,
     useResolveData,
     useRouteData,
+    Outlet,
 } from "./router";

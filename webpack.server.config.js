@@ -20,8 +20,8 @@ module.exports = () => {
             extensions: [".ts", ".tsx", ".js", ".json"],
             alias: {
                 "mfr-router": join(__dirname, "packages", "mfr-router"),
-                react: "preact/compat",
-                "react-dom": "preact/compat",
+                // react: "preact/compat",
+                // "react-dom": "preact/compat",
             },
         },
         module: {

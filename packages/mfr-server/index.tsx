@@ -1,3 +1,4 @@
+// require("source-map-support").install();
 import express from "express";
 import ProcessEnv = NodeJS.ProcessEnv;
 import { compilerName, createMachine } from "./machine";
@@ -19,13 +20,13 @@ function init(env: ProcessEnv) {
     let ssr = Buffer.from("");
     const counterService = interpret(machine)
         .onTransition((state, evt) => {
-            trace("--transition-- %o %O", state.value, evt.type);
-            trace("--ready?-- %O", state.matches({ appWatcher: "watching" }));
+            // trace("--transition-- %o %O", state.value, evt.type);
+            // trace("--ready?-- %O", state.matches({ appWatcher: "watching" }));
             if (state.matches({ appWatcher: "watching" })) {
-                trace(
-                    "--updating ssr with %O bytes--",
-                    state.context.serverBuffer.length
-                );
+                // trace(
+                //     "--updating ssr with %O bytes--",
+                //     state.context.serverBuffer.length
+                // );
                 ssr = state.context.serverBuffer;
             }
         })
@@ -37,26 +38,25 @@ function init(env: ProcessEnv) {
             return next();
         }
         const accept = req.headers["accept"] || "";
-
         if (accept !== "*/*" && !accept.includes("text/html")) {
             return next();
         }
-
         trace(
             "[ssr handler] %O, {} bytes in buffer",
             req.url,
             ssr.toString().length
         );
-        // const App = (() => {
-        //     try {
-        //         return require("");
-        //     }
-        // })();
-        const mod = requireFromString(
-            ssr.toString(),
-            "/Users/shakyshane/sites/oss/module-federation-first-framework/ssr-dist/main.js"
-        );
-        const component = mod.default(req, res);
+        let component = <p>Not found</p>;
+        try {
+            const mod = requireFromString(
+                ssr.toString(),
+                join(CWD, "/ssr-dist/main.js")
+            );
+            component = mod.default(req, res);
+        } catch (e) {
+            console.error("[requireFromString] error :%O", e);
+        }
+
         const html = renderToStaticMarkup(component);
 
         res.setHeader("content-type", "text/html");
@@ -69,10 +69,7 @@ function init(env: ProcessEnv) {
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title></head>
 <body>
-<main>
-    <!-- MFF -->${html}
-    <!-- MFF END -->
-</main>
+<main>${html}</main>
 <script src="/main.js"></script>
 </body>
 </html>`

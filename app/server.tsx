@@ -9,9 +9,8 @@ import { App } from "./app";
 export default function ssr(req, res) {
     console.log("SSR only here please");
     return (
-        <BaseRouter location={createLocation(req.url)}>
+        <BaseRouter location={createLocation(req.url)} >
             <App />
-            <p>Here please Sir</p>
         </BaseRouter>
     );
 }

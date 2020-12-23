@@ -1,5 +1,5 @@
 import * as React from "react";
-import { RouterProvider } from "mfr-router";
+import {Outlet} from "mfr-router";
 
 if (process.env.NODE_ENV === "development") {
     if (typeof window !== "undefined") {
@@ -17,10 +17,10 @@ export function App() {
     return (
         <div style={{ position: "relative" }}>
             <header style={{ padding: "20px", background: "orange" }}>
-                <strong>MFR Router is here</strong>{" "}
+                <strong>App related thing here</strong>
                 <small>Module Federation</small>
             </header>
-            <RouterProvider segs={children} />
+            <Outlet segs={children} />
             <footer style={{ padding: "20px", background: "#a4a4d8" }}>
                 <strong>MFR Router</strong>
             </footer>

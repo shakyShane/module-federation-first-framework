@@ -206,7 +206,6 @@ export function createMachine() {
                 },
                 updateSSR: assign({
                     serverBuffer: (ctx, evt) => {
-                        console.log("evet->", evt);
                         if (evt.type === "COMPILATION_COMPLETE") {
                             if (evt.name === SERVER_ENTRY_NAME) {
                                 return evt.buffer;

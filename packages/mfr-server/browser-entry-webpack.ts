@@ -63,8 +63,8 @@ export function browserEntryWebpack(
             extensions: [".ts", ".tsx", ".js", ".json"],
             alias: {
                 "mfr-router": path.join(cwd, "packages", "mfr-router"),
-                react: "preact/compat",
-                "react-dom": "preact/compat",
+                // react: "preact/compat",
+                // "react-dom": "preact/compat",
             },
         },
         module: {

@@ -247,8 +247,11 @@ const noopDataLoader = () => Promise.resolve({});
 const noopResolver = () => Promise.resolve({});
 
 export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
-    const { dataLoader = noopDataLoader, resolver = pageLoader, segs } = props;
-    console.log("SSR");
+    let { resolver } = props;
+    const { dataLoader = noopDataLoader, segs } = props;
+    if (!resolver) {
+        resolver = pageLoader;
+    }
     const baseRouter = useContext(BaseRouterContext);
     if (!baseRouter.send) {
         throw new Error(
@@ -375,6 +378,10 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
     );
 }
 
+export function Outlet(props: ProviderProps) {
+    return <RouterProvider {...props} />;
+}
+
 type RouterProps = {
     resolver: () => Promise<any>;
     dataLoader: () => Promise<any>;
@@ -397,12 +404,12 @@ type BaseContext = {
 //prettier-ignore
 type BaseEvt =
     | {
-        type: '@external.TRIGGER_RESOLVE';
-        depth: number;
-        exact: boolean;
-        location: History['location'];
-        action: History['action'];
-        matchData: any
+    type: '@external.TRIGGER_RESOLVE';
+    depth: number;
+    exact: boolean;
+    location: History['location'];
+    action: History['action'];
+    matchData: any
 }
     | { type: 'REGISTER'; matchers: Matcher[] }
     | { type: 'UNREGISTER'; depth: number }
@@ -514,9 +521,13 @@ const noop = () => {
     /* noop */
 };
 
-export function BaseRouter(
-    props: PropsWithChildren<{ location: History["location"] }>
-) {
+type BaseRouterProps = {
+    location: History["location"];
+    resolvers?: { add() };
+    dataLoaders?: { add() };
+};
+
+export function BaseRouter(props: PropsWithChildren<BaseRouterProps>) {
     const [state, send, service] = useMachine(baseMachine, { devTools: true });
     const bh = useConstant(() => {
         if (typeof window === "undefined") {
@@ -526,7 +537,7 @@ export function BaseRouter(
         }
     });
     useEffect(() => {
-        const unlisten = bh.listen(({ location, action }) => {
+        const unlisten = bh.listen((location, action) => {
             send({ type: "HISTORY_EVT", location, action });
         });
         return () => {
@@ -536,22 +547,13 @@ export function BaseRouter(
         };
     }, [send]);
     const api = useMemo(() => {
-        if (typeof window === "undefined") {
-            return { history: bh, send, service };
-        } else {
-            return { history: bh, send, service };
-        }
+        return { history: bh, send, service };
     }, [send, service]);
     return (
         <BaseRouterContext.Provider value={api}>
             {props.children}
         </BaseRouterContext.Provider>
     );
-}
-
-export function Outlet() {
-    const { service, prev } = useContext(RouterContext);
-    return <p>Outlet at depth: {prev}</p>;
 }
 
 export function useRouteData() {
