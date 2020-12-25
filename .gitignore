@@ -1,5 +1,5 @@
 .idea
 /dist
 /dist-server
-/ssr-dist
+/dist-ssr
 node_modules

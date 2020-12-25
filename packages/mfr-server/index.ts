@@ -1,14 +1,15 @@
 // require("source-map-support").install();
 import express from "express";
-import ProcessEnv = NodeJS.ProcessEnv;
 import { compilerName, createMachine } from "./machine";
 import { interpret } from "xstate";
 import debugPkg from "debug";
 import { existsSync } from "fs";
 import { join } from "path";
-import { renderToStaticMarkup } from "react-dom/server";
 import requireFromString from "require-from-string";
-import React from "react";
+import { Result, ResultKind } from "./result";
+import { render } from "./react/render";
+import ProcessEnv = NodeJS.ProcessEnv;
+
 const CWD = process.cwd();
 const debug = debugPkg("mff:debug");
 const trace = debugPkg("mff:trace");
@@ -33,7 +34,7 @@ function init(env: ProcessEnv) {
         .start();
 
     const app = express();
-    function ssrHandler(req, res, next) {
+    async function ssrHandler(req, res, next) {
         if (req.method !== "GET" && req.method !== "HEAD") {
             return next();
         }
@@ -46,34 +47,49 @@ function init(env: ProcessEnv) {
             req.url,
             ssr.toString().length
         );
-        let component = <p>Not found</p>;
+        let result: Result = { kind: ResultKind.Unknown };
         try {
             const mod = requireFromString(
                 ssr.toString(),
-                join(CWD, "/ssr-dist/main.js")
+                join(CWD, "/dist-ssr/main.js")
             );
-            component = mod.default(req, res);
+            result = await render({ mod, req, res });
         } catch (e) {
+            result = { kind: ResultKind.ModuleError, error: e };
             console.error("[requireFromString] error :%O", e);
         }
 
-        const html = renderToStaticMarkup(component);
-
-        res.setHeader("content-type", "text/html");
-        return res.send(
-            `<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title></head>
-<body>
-<main>${html}</main>
-<script src="/main.js"></script>
-</body>
-</html>`
-        );
+        switch (result.kind) {
+            case ResultKind.Unknown: {
+                return res.status(500).send("unknown result");
+            }
+            case ResultKind.Response: {
+                res.setHeader("content-type", "text/html");
+                return res.send(
+                    `<!doctype html>
+                        <html lang="en">
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+                            <meta http-equiv="X-UA-Compatible" content="ie=edge">
+                            <title>Document</title></head>
+                        <body>
+                        <main>${result.html}</main>
+                        <script src="/main.js"></script>
+                        </body>
+                    </html>`
+                );
+            }
+            case ResultKind.Error: {
+                return res.status(result.status).send(result.html);
+            }
+            case ResultKind.ModuleError: {
+                return res.status(500).send(result.error.stack);
+            }
+            case ResultKind.Redirect: {
+                return res.redirect(result.status, result.location);
+            }
+        }
     }
     function page(req, res, next) {
         trace("[page handler] %O", req.url);

@@ -10,7 +10,7 @@ export interface AppWebpackParams {
     cwd?: string;
 }
 
-export const createOutput = (cwd) => path.join(cwd, "ssr-dist");
+export const createOutput = (cwd) => path.join(cwd, "dist-ssr");
 export const shared = [
     "react",
     "react-dom",

@@ -1,16 +1,20 @@
 import React from "react";
 import { createLocation } from "history";
-import { BaseRouter } from "mfr-router";
 import { App } from "./app";
+import { BaseRouterProvider } from "mfr-router";
 
 /**
  * SSR entry point
  */
-export default function ssr(req, res) {
-    console.log("SSR only here please");
+export default function ssr(req, res, ctx) {
+    console.log("ctx->", ctx);
     return (
-        <BaseRouter location={createLocation(req.url)} >
+        <BaseRouterProvider
+            location={createLocation(req.url)}
+            routers={ctx.routers}
+            register={ctx.register}
+        >
             <App />
-        </BaseRouter>
+        </BaseRouterProvider>
     );
 }
