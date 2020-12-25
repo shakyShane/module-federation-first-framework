@@ -62,7 +62,7 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
     } = useContext(RouterContext);
     const currentDepth = parentSend === null ? 0 : prev + 1;
     const machine = useMemo(() => {
-        return createRouterMachine(
+        const base = createRouterMachine(
             `router-${currentDepth}-${uuidv4().slice(0, 6)}`,
             parents,
             segs,
@@ -71,11 +71,27 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
             resolver,
             dataLoader
         );
+        if (typeof window !== "undefined") return base;
+        if (routers[currentDepth]?.component) {
+            console.log("found component");
+            return base.withContext({
+                ...base.context,
+                component: routers[currentDepth].component,
+            } as any);
+        }
+        return base;
     }, [currentDepth, dataLoader, history.location, parents, resolver, segs]);
 
     const [state, send, service] = useMachine(machine, {
         devTools: true,
     });
+
+    // console.log("~~~~~>", routers, currentDepth);
+    if (!state.context.component) {
+        register(state.context);
+    } else {
+        console.log("found component?", state.context.component);
+    }
 
     useEffect(() => {
         const matchers: Matcher[] = [];
@@ -150,7 +166,7 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
                     {React.createElement(state.context.component)}
                 </div>
             )}
-            {state.value === "resolving" && (
+            {state.value === "resolving" && typeof window !== "undefined" && (
                 <span
                     style={{
                         fontSize: "20px",
