@@ -20,7 +20,7 @@ export const shared = [
     "xstate",
     "@xstate/react",
     "mfr-router",
-    "./app/shared/Styles",
+    "./app/shared/shared",
 ];
 export function browserEntryWebpack(
     params: AppWebpackParams

@@ -6,8 +6,8 @@ import { BaseRouterProvider } from "mfr-router";
 /**
  * SSR entry point
  */
-export default function ssr(req, res, ctx) {
-    console.log("ctx->", ctx);
+export default function ssrServerEntry(req, res, ctx) {
+    console.log("ctx is here", ctx);
     return (
         <BaseRouterProvider
             location={createLocation(req.url)}
