@@ -20,6 +20,7 @@ export const shared = [
     "xstate",
     "@xstate/react",
     "mfr-router",
+    "./app/shared/Styles",
 ];
 export function browserEntryWebpack(
     params: AppWebpackParams
@@ -56,15 +57,15 @@ export function browserEntryWebpack(
             minimize: mode === "production",
             minimizer: [
                 // new ESBuildMinifyPlugin({ target: "es2015" }),
-                // mode === "production" && new TerserPlugin(),
+                mode === "production" && new TerserPlugin(),
             ].filter(Boolean),
         },
         resolve: {
             extensions: [".ts", ".tsx", ".js", ".json"],
             alias: {
                 "mfr-router": path.join(cwd, "packages", "mfr-router"),
-                // react: "preact/compat",
-                // "react-dom": "preact/compat",
+                react: "preact/compat",
+                "react-dom": "preact/compat",
             },
         },
         module: {

@@ -6,7 +6,7 @@ import { BaseRouterProvider } from "mfr-router";
 
 // load app
 const el = document.getElementsByTagName("main")[0];
-ReactDom.hydrate(
+ReactDom.render(
     <BaseRouterProvider
         location={createLocation(window.location.pathname)}
         routers={{}}

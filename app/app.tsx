@@ -1,5 +1,10 @@
 import * as React from "react";
-import {Outlet} from "mfr-router";
+import { Outlet } from "mfr-router";
+import "./styles.css";
+import { Nav } from "./components/Nav/Nav";
+import { Main } from "./components/Main";
+import { Body } from "./components/Body";
+import { StylesProvider } from "./shared/Styles";
 
 if (process.env.NODE_ENV === "development") {
     if (typeof window !== "undefined") {
@@ -10,20 +15,18 @@ if (process.env.NODE_ENV === "development") {
 
 const children = [
     { key: "index", as: "/" },
-    { key: "user", as: "user" },
+    { key: "me", as: "me" },
 ];
 
 export function App() {
     return (
-        <div style={{ position: "relative" }}>
-            <header style={{ padding: "20px", background: "orange" }}>
-                <strong>App related thing here</strong>
-                <small>Module Federation</small>
-            </header>
-            <Outlet segs={children} />
-            <footer style={{ padding: "20px", background: "#a4a4d8" }}>
-                <strong>MFR Router</strong>
-            </footer>
-        </div>
+        <StylesProvider>
+            <Body>
+                <Nav />
+                <Main>
+                    <Outlet segs={children} />
+                </Main>
+            </Body>
+        </StylesProvider>
     );
 }

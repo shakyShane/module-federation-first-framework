@@ -59,6 +59,7 @@ function init(env: ProcessEnv) {
             console.error("[requireFromString] error :%O", e);
         }
 
+        console.log(result.kind);
         switch (result.kind) {
             case ResultKind.Unknown: {
                 return res.status(500).send("unknown result");
@@ -69,10 +70,10 @@ function init(env: ProcessEnv) {
                     `<!doctype html>
                         <html lang="en">
                         <head>
-                            <meta charset="UTF-8">
-                            <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-                            <meta http-equiv="X-UA-Compatible" content="ie=edge">
-                            <title>Document</title></head>
+                            <meta charset="utf-8"/>
+                            <meta name="viewport" content="width=device-width, initial-scale=1">
+                            <link rel="stylesheet" href="https://production.haystack-assets.com/assets/mobile-c3c0891a500d04c73fd0281fe0a0f40b885ae08d5b55ce1b6d2d3e52b4d59c70.css">
+                            <link rel="stylesheet" href="https://production.haystack-assets.com/assets/message_content-440db27e87f76e0aff765fa3bda981d5ecb10a198a4d57f99414a86befdd9d86.css">
                         <body>
                         <main>${result.html}</main>
                         <script src="/main.js"></script>

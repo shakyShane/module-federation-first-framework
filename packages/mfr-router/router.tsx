@@ -1,5 +1,5 @@
 import React from "react";
-import { assign, DoneInvokeEvent, Machine } from "xstate";
+import { assign, DoneInvokeEvent, Machine, send } from "xstate";
 import { History } from "history";
 import debugpkg from "debug";
 
@@ -27,7 +27,8 @@ export type Context = {
 // prettier-ignore
 type Events =
     | { type: "xstate.init"; }
-    | { type: "HISTORY_EVT"; location: History["location"]; depth: number; matchData: MatchData };
+    | { type: "HISTORY_EVT"; location: History["location"]; depth: number; matchData: MatchData }
+    | { type: "NOTIFY_RESOLVED"; };
 
 export type MatchData = {
     path: string;
@@ -114,7 +115,7 @@ export function createRouterMachine(
                         src: "loadData",
                         onDone: {
                             target: "dataLoaded",
-                            actions: "assignRouteData",
+                            actions: ["assignRouteData", "notifyResolved"],
                         },
                     },
                 },
@@ -211,6 +212,7 @@ export function createRouterMachine(
                         };
                     },
                 }),
+                notifyResolved: send("NOTIFY_RESOLVED"),
             },
         }
     );

@@ -73,7 +73,6 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
         );
         if (typeof window !== "undefined") return base;
         if (routers[currentDepth]?.component) {
-            console.log("found component");
             return base.withContext({
                 ...base.context,
                 component: routers[currentDepth].component,
@@ -90,7 +89,7 @@ export function RouterProvider(props: PropsWithChildren<ProviderProps>) {
     if (!state.context.component) {
         register(state.context);
     } else {
-        console.log("found component?", state.context.component);
+        console.log("found component::", state.context.component);
     }
 
     useEffect(() => {

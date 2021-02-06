@@ -2,8 +2,8 @@ const path = require("path");
 const { ESBuildPlugin } = require("esbuild-loader");
 const { ModuleFederationPlugin } = require("webpack").container;
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const TerserPlugin = require("terser-webpack-plugin");
 const { sync } = require("glob");
+const TerserPlugin = require("terser-webpack-plugin");
 
 const OUTPUT = path.resolve(__dirname, "dist");
 const optimization = (mode = "production") => {
@@ -13,7 +13,7 @@ const optimization = (mode = "production") => {
         minimize: mode === "production",
         minimizer: [
             // new ESBuildMinifyPlugin({ target: "es2015" }),
-            // mode === "production" && new TerserPlugin(),
+            mode === "production" && new TerserPlugin(),
         ].filter(Boolean),
     };
 };
@@ -27,8 +27,8 @@ const resolve = {
     extensions: [".ts", ".tsx", ".js", ".json"],
     alias: {
         "mfr-router": path.join(__dirname, "packages", "mfr-router"),
-        // react: "preact/compat",
-        // "react-dom": "preact/compat",
+        react: "preact/compat",
+        "react-dom": "preact/compat",
     },
 };
 const devtool = "source-map";
@@ -58,7 +58,14 @@ const moduleRules = {
     ],
 };
 
-const shared = ["react", "react-dom", "xstate", "@xstate/react", "mfr-router"];
+const shared = [
+    "react",
+    "react-dom",
+    "xstate",
+    "@xstate/react",
+    "mfr-router",
+    "./app/shared/Styles",
+];
 
 const sharedNoImport = shared.reduce((acc, item) => {
     acc[item] = { import: false };

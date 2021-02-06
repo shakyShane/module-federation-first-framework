@@ -9,7 +9,7 @@
     "build": "npm run clean && webpack --mode=production",
     "build:server": "webpack --config webpack.server.config.js",
     "watch": "npm run build:server -- --watch",
-    "serve": "DEBUG=mff:* nodemon dist-server",
+    "serve": "npm run clean && DEBUG=mff:* node dist-server",
     "prettier": "prettier 'packages/**/*.{ts,tsx}' 'app/**/*.{ts,tsx}' 'webpack.config.js'",
     "lint": "npm run prettier -- -c",
     "lint:fix": "npm run prettier -- --write",
@@ -34,8 +34,8 @@
   },
   "dependencies": {
     "@babel/core": "7.12.9",
-    "@xstate/inspect": "^0.2.0",
-    "@xstate/react": "^1.0.3",
+    "@xstate/inspect": "^0.4.1",
+    "@xstate/react": "^1.2.2",
     "concurrently": "5.3.0",
     "debug": "^4.3.1",
     "es-module-lexer": "0.3.26",
@@ -55,7 +55,7 @@
     "source-map-support": "^0.5.19",
     "uuid": "^8.3.1",
     "webpack-node-externals": "2.5.2",
-    "xstate": "^4.14.1"
+    "xstate": "^4.16.1"
   },
   "prettier": {
     "tabWidth": 4
