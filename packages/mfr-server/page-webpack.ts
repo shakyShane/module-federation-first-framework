@@ -4,6 +4,8 @@ import {
     shared,
 } from "./browser-entry-webpack";
 import webpack from "webpack";
+import { createTrace } from "./debug";
+const trace = createTrace("webpack:page");
 
 const path = require("path");
 const { ESBuildPlugin } = require("esbuild-loader");
@@ -23,6 +25,7 @@ export function pageWebpack(
     const { cwd = process.cwd(), mode = "development" } = params;
     const localName = page.replace("./app/pages/", "");
     const slug = page.slice(2).replace(/[./]/g, "_");
+    trace("creating page for %O", { slug, localName, sharedNoImport });
     return {
         name: "pages",
         mode,

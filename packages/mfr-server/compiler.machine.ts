@@ -1,10 +1,10 @@
 import { forwardTo, Machine, Sender, sendParent } from "xstate";
 import webpack from "webpack";
-import debugPkg from "debug";
 import { join } from "path";
 import { SERVER_ENTRY_NAME } from "./machine";
-const debug = debugPkg("mff:webpack:machine:debug");
-const trace = debugPkg("mff:webpack:machine:trace");
+import { createDebug, createTrace } from "./debug";
+const debug = createDebug("webpack:machine");
+const trace = createTrace("webpack:machine");
 
 type Schema = {
     states: {

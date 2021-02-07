@@ -1,12 +1,12 @@
-import { assign, forwardTo, Machine, send, Sender, spawn } from "xstate";
-import debugPkg from "debug";
+import { assign, forwardTo, Machine, send, spawn } from "xstate";
 import { createWebpackMachine } from "./compiler.machine";
 import { pageWebpack } from "./page-webpack";
 import { pure } from "xstate/lib/actions";
 import { browserEntryWebpack } from "./browser-entry-webpack";
 import { serverEntryWebpack } from "./server-entry-webpack";
-const debug = debugPkg("mff:machine:debug");
-const trace = debugPkg("mff:machine:trace");
+import { createDebug, createTrace } from "./debug";
+const debug = createDebug("machine");
+const trace = createTrace("machine");
 
 export const BROWSER_ENTRY_NAME = "browser-entry";
 export const SERVER_ENTRY_NAME = "server-entry";

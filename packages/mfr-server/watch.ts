@@ -2,21 +2,24 @@
 import express from "express";
 import { compilerName, createMachine } from "./machine";
 import { interpret } from "xstate";
-import debugPkg from "debug";
 import { existsSync } from "fs";
 import { join } from "path";
 import requireFromString from "require-from-string";
 import { Result, ResultKind } from "./result";
 import { render } from "./react/render";
 import ProcessEnv = NodeJS.ProcessEnv;
+import { createTrace } from "./debug";
 
-const CWD = process.cwd();
-const debug = debugPkg("mff:debug");
-const trace = debugPkg("mff:trace");
+const trace = createTrace("watch");
 
-debug(CWD);
+/**
+ * Running with current cwd/env for now
+ */
+init(process.cwd(), process.env);
 
-function init(env: ProcessEnv) {
+function init(cwd: string, env: ProcessEnv) {
+    const CWD = cwd;
+    trace("running in %o", CWD);
     const machine = createMachine();
     let ssr = Buffer.from("");
     const counterService = interpret(machine)
@@ -59,7 +62,6 @@ function init(env: ProcessEnv) {
             console.error("[requireFromString] error :%O", e);
         }
 
-        console.log(result.kind);
         switch (result.kind) {
             case ResultKind.Unknown: {
                 return res.status(500).send("unknown result");
@@ -125,5 +127,3 @@ function init(env: ProcessEnv) {
         console.log("listening on http://localhost:8080");
     });
 }
-
-init(process.env);
