@@ -4,7 +4,7 @@ import { App } from "./app";
 import { createLocation } from "history";
 import { BaseRouterProvider } from "mfr-router";
 
-// load app
+// load app please
 const el = document.getElementsByTagName("main")[0];
 ReactDom.render(
     <BaseRouterProvider
